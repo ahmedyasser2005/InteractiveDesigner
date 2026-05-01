@@ -1,0 +1,26 @@
+name: Windows Graphics CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v6.0.2
+
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v2.2.0
+      with:
+        cmake-version: '3.25'
+
+    - name: Configure CMake
+      run: cmake -S . -B build -A x64
+
+    - name: Compile Application
+      run: cmake --build build --config Release
