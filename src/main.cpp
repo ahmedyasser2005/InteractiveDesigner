@@ -1,4 +1,4 @@
-﻿#include "Platform/Window.h"
+﻿#include "Engine/Engine.h"
 
 int WINAPI wWinMain(
 	_In_ HINSTANCE hInstance,
@@ -7,12 +7,7 @@ int WINAPI wWinMain(
 	_In_ int nShowCmd
 )
 {
-	Window window( 1280, 720, L"Interactive Designer" );
-
-	while( window.ProcessMessages() )
-	{
-		// Engine logic, Rasterizer, and DX11 rendering go here!
-	}
-
+	Engine engine{ L"Interactive Designer", 1280u , 720u };
+	engine.Run();
 	return 0;
 }
