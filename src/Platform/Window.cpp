@@ -5,7 +5,6 @@ Window::Window( int width, int height, const std::wstring& title )
 {
 	SetProcessDpiAwarenessContext( DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 );
 
-	const wchar_t* className = L"InteractiveDesignerWindowClass";
 	WNDCLASSW wc = {
 		.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
 		.lpfnWndProc = HandleMsgSetup, // First call goes here
@@ -31,8 +30,11 @@ Window::Window( int width, int height, const std::wstring& title )
 
 Window::~Window()
 {
-	UnregisterClassW( L"InteractiveDesignerWindowClass", m_hInst );
-	DestroyWindow( m_hwnd );
+	if( m_hwnd != nullptr )
+	{
+		DestroyWindow( m_hwnd );
+	}
+	UnregisterClassW( className, m_hInst );
 }
 
 LRESULT CALLBACK Window::HandleMsgSetup( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
@@ -42,10 +44,13 @@ LRESULT CALLBACK Window::HandleMsgSetup( HWND hwnd, UINT uMsg, WPARAM wParam, LP
 		// Extract our 'this' pointer from the creation params
 		const CREATESTRUCTW* const pCreate = reinterpret_cast<CREATESTRUCTW*>(lParam);
 		Window* const pWnd = static_cast<Window*>(pCreate->lpCreateParams);
+
 		// Store it in the Win32 user data for future retrieval
 		SetWindowLongPtrW( hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWnd) );
+
 		// Switch the procedure to the "Thunk" version
 		SetWindowLongPtrW( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&Window::HandleMsgThunk) );
+
 		return pWnd->HandleMsg( hwnd, uMsg, wParam, lParam );
 	}
 	return DefWindowProcW( hwnd, uMsg, wParam, lParam );
@@ -55,6 +60,10 @@ LRESULT CALLBACK Window::HandleMsgThunk( HWND hwnd, UINT uMsg, WPARAM wParam, LP
 {
 	// Retrieve our 'this' pointer and call the member function
 	Window* const pWnd = reinterpret_cast<Window*>(GetWindowLongPtrW( hwnd, GWLP_USERDATA ));
+	if( pWnd == nullptr )
+	{
+		return DefWindowProcW( hwnd, uMsg, wParam, lParam );
+	}
 	return pWnd->HandleMsg( hwnd, uMsg, wParam, lParam );
 }
 

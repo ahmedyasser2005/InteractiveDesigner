@@ -1,5 +1,6 @@
 #pragma once
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
 #include <string>
 
@@ -8,7 +9,6 @@ public:
 	Window( int width, int height, const std::wstring& title );
 	~Window();
 
-	// Prevent copying to avoid multiple windows managing the same HWND
 	Window( const Window& ) = delete;
 	Window& operator=( const Window& ) = delete;
 
@@ -22,6 +22,7 @@ private:
 
 	HINSTANCE m_hInst;
 	HWND m_hwnd;
+	const wchar_t* className = L"InteractiveDesignerWindowClass";
 	int m_width;
 	int m_height;
 };
