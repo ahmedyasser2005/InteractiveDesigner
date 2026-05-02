@@ -16,42 +16,25 @@ endif()
 
 set(SOURCES
 	"src/main.cpp"
-
-    "src/Platform/Window.cpp"
-    "src/Platform/Window.h"
-	
-	"src/Renderer/DX11Renderer.cpp"
-	"src/Renderer/DX11Renderer.h"
-    "src/Renderer/Utility.h"
-
-    "src/Engine/Engine.cpp"
-    "src/Engine/Engine.h"
+	"src/Platform/CustomWin.h"
+	"src/Platform/Input.h"
+	"src/Platform/Window.h"
+	"src/Platform/Window.cpp"
+	"src/Application/Application.h"
+	"src/Application/Application.cpp"
+	"src/Graphics/Graphics.h"
+	"src/Graphics/Graphics.cpp"
+	"src/Utils/ErrorUtils.h"
 )
 
-add_executable(${PROJECT_NAME} WIN32 ${SOURCES})
+add_executable(${PROJECT_NAME} # WIN32
+	${SOURCES}
+)
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 	d3d11.lib 
 	dxgi.lib 
 	d3dcompiler.lib
-)
-
-
-# Compile & link HLSL shaders
-find_program(FXC_EXECUTABLE fxc PATHS "$ENV{WindowsSdkDir}bin/$ENV{WindowsSDKVersion}x64")
-
-add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/VertexShader.cso"
-    COMMAND ${FXC_EXECUTABLE} /T vs_5_0 /E VS /Fo "${CMAKE_CURRENT_BINARY_DIR}/VertexShader.cso" "${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/VertexShader.hlsl"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/VertexShader.hlsl"
-)
-add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/PixelShader.cso"
-    COMMAND ${FXC_EXECUTABLE} /T ps_5_0 /E PS /Fo "${CMAKE_CURRENT_BINARY_DIR}/PixelShader.cso" "${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/PixelShader.hlsl"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/PixelShader.hlsl"
-)
-target_sources(${PROJECT_NAME} PRIVATE 
-    "${CMAKE_CURRENT_BINARY_DIR}/VertexShader.cso"
-    "${CMAKE_CURRENT_BINARY_DIR}/PixelShader.cso"
+	Shcore.lib
 )

@@ -1,28 +1,36 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
+#include "CustomWin.h"
+#include "../Graphics/Graphics.h"
+#include "Input.h"
+#include <memory>
+#include <optional>
 #include <string>
 
-class Window {
+class Window final {
 public:
-	Window( int width, int height, const std::wstring& title );
-	~Window();
+	explicit Window( std::string_view title, uint32_t width, uint32_t height );
+	~Window() noexcept;
 
 	Window( const Window& ) = delete;
+	Window( Window&& ) = delete;
 	Window& operator=( const Window& ) = delete;
+	Window& operator=( Window&& ) = delete;
 
-	bool ProcessMessages();
-	HWND GetHandle() const { return m_hwnd; }
+	static std::optional<int> ProcessMessages() noexcept;
+	HWND GetHandle() const noexcept { return m_hWnd; }
+	Graphics& GetGfx() const noexcept { return *m_gfx; }
 
 private:
-	static LRESULT CALLBACK HandleMsgSetup( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
-	static LRESULT CALLBACK HandleMsgThunk( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
-	LRESULT HandleMsg( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
+	static LRESULT CALLBACK HandleMsgSetup( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) noexcept;
+	static LRESULT CALLBACK HandleMsgThunk( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) noexcept;
+	LRESULT HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) noexcept;
 
-	HINSTANCE m_hInst;
-	HWND m_hwnd;
-	const wchar_t* className = L"InteractiveDesignerWindowClass";
-	int m_width;
-	int m_height;
+private:
+	static constexpr const wchar_t* className = L"WindowClass";
+	HWND m_hWnd = nullptr;
+	std::unique_ptr<Graphics> m_gfx{ nullptr };
+
+public:
+	Input input;
+
 };
