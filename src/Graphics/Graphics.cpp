@@ -1,5 +1,5 @@
 #include "Graphics.h"
-#include "../Platform/ErrorUtils.h"
+#include "../Utils/ErrorUtils.h"
 
 Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height ) : m_width( width ), m_height( height )
 {
