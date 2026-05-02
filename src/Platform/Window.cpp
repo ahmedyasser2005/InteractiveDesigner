@@ -1,5 +1,8 @@
 #include "Window.h"
 #include <iostream>
+#include <imgui.h>
+
+
 
 Window::Window( std::string_view title, uint32_t width, uint32_t height )
 {
@@ -75,8 +78,14 @@ LRESULT CALLBACK Window::HandleMsgThunk( HWND hWnd, UINT msg, WPARAM wParam, LPA
 
 
 
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam );
+
 LRESULT Window::HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) noexcept
 {
+	if( ImGui_ImplWin32_WndProcHandler( hWnd, msg, wParam, lParam ) )
+		return 0;
+
 	switch( msg )
 	{
 		case WM_DESTROY:
@@ -127,6 +136,7 @@ LRESULT Window::HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) n
 		}
 		// End of Mouse Messages
 	}
+
 	return DefWindowProc( hWnd, msg, wParam, lParam );
 }
 

@@ -1,5 +1,8 @@
 #include "Graphics.h"
 #include "../Utils/ErrorUtils.h"
+#include <imgui.h>
+#include <imgui_impl_win32.h>
+#include <imgui_impl_dx11.h>
 
 Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height ) : m_width( width ), m_height( height )
 {
@@ -31,6 +34,19 @@ Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height ) : m_width( widt
 											createDeviceFlags, nullptr, 0, D3D11_SDK_VERSION,
 											&sd, &m_swapChain, &m_device, nullptr, &m_context ) );
 
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.IniFilename = nullptr;
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplWin32_Init( hWnd );
+	ImGui_ImplDX11_Init( m_device.Get(), m_context.Get() );
+
+
+
 	m_pixelBuffer.resize( m_width * m_height, 0 );
 
 	D3D11_TEXTURE2D_DESC td{};
@@ -52,10 +68,21 @@ Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height ) : m_width( widt
 	DX_CALL( m_device->CreateRenderTargetView( m_BackBuffer.Get(), nullptr, m_renderTargetView.GetAddressOf() ) );
 }
 
+Graphics::~Graphics()
+{
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+}
+
 void Graphics::EndFrame()
 {
 	UpdateTexture();
 	m_context->CopyResource( m_BackBuffer.Get(), m_pTexture.Get() );
+
+	m_context->OMSetRenderTargets( 1, m_renderTargetView.GetAddressOf(), nullptr );
+	ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData() );
+
 	DX_CALL( m_swapChain->Present( 1, 0 ) );
 }
 

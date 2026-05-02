@@ -6,7 +6,7 @@
 class Graphics final {
 public:
 	explicit Graphics( HWND hWnd, uint32_t width, uint32_t height );
-	~Graphics() = default;
+	~Graphics();
 
 	void UpdateTexture();
 	void PutPixel( uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b ) noexcept;

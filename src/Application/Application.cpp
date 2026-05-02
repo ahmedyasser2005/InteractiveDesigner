@@ -1,5 +1,7 @@
 #include "Application.h"
 #include <ShellScalingApi.h>
+#include <imgui_impl_dx11.h>
+#include <imgui_impl_win32.h>
 
 int Application::Run()
 {
@@ -22,9 +24,10 @@ int Application::Run()
 void Application::Shutdown()
 {
 	// Save application state, release resources, etc.
+
+
+
 }
-
-
 
 void Application::Update()
 {
@@ -38,5 +41,25 @@ void Application::Render()
 	m_wnd->GetGfx().ClearScreen( 255u, 255u, 255u );
 
 
+	// Start ImGui
+	{
+		// Start ImGui Frame
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+		// Define UI
+		ImGui::Begin( "Toolbox" );
+		static float color[3] = { 1.0f, 1.0f, 1.0f };
+		ImGui::ColorEdit3( "Brush Color", color );
+		if( ImGui::Button( "Clear Canvas" ) )
+		{
+			// logic to clear app state
+		}
+		ImGui::End();
+		// Finalize ImGui( this creates vertex buffers for the UI )
+		ImGui::Render();
+	}
+	// End ImGui
 
 }
