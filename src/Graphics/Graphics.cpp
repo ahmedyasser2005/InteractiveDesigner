@@ -59,7 +59,6 @@ void Graphics::EndFrame()
 	DX_CALL( m_swapChain->Present( 1, 0 ) );
 }
 
-
 void Graphics::UpdateTexture()
 {
 	D3D11_MAPPED_SUBRESOURCE msr;
@@ -81,9 +80,6 @@ void Graphics::UpdateTexture()
 		m_context->Unmap( m_pTexture.Get(), 0 );
 	}
 }
-
-
-
 
 void Graphics::PutPixel( uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b ) noexcept
 {
