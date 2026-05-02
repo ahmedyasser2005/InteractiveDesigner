@@ -1,7 +1,6 @@
 #pragma once
-#include "Platform/Window.h"
+#include "Window.h"
 #include <memory>
-
 
 class Application final {
 public:

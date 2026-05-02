@@ -1,8 +1,6 @@
 #include "Window.h"
-#include <iostream>
+#include "DSUtils.h"
 #include <imgui.h>
-
-
 
 Window::Window( std::string_view title, uint32_t width, uint32_t height )
 {
@@ -17,13 +15,13 @@ Window::Window( std::string_view title, uint32_t width, uint32_t height )
 	};
 	RegisterClassEx( &wc );
 
-	RECT wr = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
+	RECT wr = { 0L, 0L, static_cast<LONG>(width), static_cast<LONG>(height) };
 	AdjustWindowRect( &wr, WS_OVERLAPPEDWINDOW, FALSE );
 
 	std::wstring wTitle( title.begin(), title.end() );
 
 	m_hWnd = CreateWindowEx(
-		0,
+		0UL,
 		className,
 		wTitle.c_str(),
 		WS_OVERLAPPEDWINDOW,
@@ -84,14 +82,14 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd, UINT ms
 LRESULT Window::HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) noexcept
 {
 	if( ImGui_ImplWin32_WndProcHandler( hWnd, msg, wParam, lParam ) )
-		return 0;
+		return 0LL;
 
 	switch( msg )
 	{
 		case WM_DESTROY:
 		{
 			PostQuitMessage( 0 );
-			return 0;
+			return 0LL;
 		}
 
 
@@ -101,13 +99,13 @@ LRESULT Window::HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) n
 		case WM_SYSKEYDOWN:
 		{
 			input.keys[wParam] = true;
-			return 0;
+			return 0LL;
 		}
 		case WM_KEYUP:
 		case WM_SYSKEYUP:
 		{
 			input.keys[wParam] = false;
-			return 0;
+			return 0LL;
 		}
 		// End of Keyboard Messages
 
@@ -117,22 +115,21 @@ LRESULT Window::HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) n
 		case WM_MOUSEMOVE:
 		{
 			const POINTS pt = MAKEPOINTS( lParam );
-			input.x = static_cast<int>(pt.x);
-			input.y = static_cast<int>(pt.y);
-			return 0;
+			input.pos = { static_cast<float>(pt.x), static_cast<float>(pt.y) };
+			return 0LL;
 		}
-		case WM_LBUTTONDOWN: { input.leftDown = true;	 return 0; }
-		case WM_LBUTTONUP: { input.leftDown = false; return 0; }
+		case WM_LBUTTONDOWN: { input.leftDown = true;	 return 0LL; }
+		case WM_LBUTTONUP: { input.leftDown = false; return 0LL; }
 
-		case WM_RBUTTONDOWN: { input.rightDown = true;	 return 0; }
-		case WM_RBUTTONUP: { input.rightDown = false; return 0; }
+		case WM_RBUTTONDOWN: { input.rightDown = true;	 return 0LL; }
+		case WM_RBUTTONUP: { input.rightDown = false; return 0LL; }
 
-		case WM_MBUTTONDOWN: { input.middleDown = true;	 return 0; }
-		case WM_MBUTTONUP: { input.middleDown = false; return 0; }
+		case WM_MBUTTONDOWN: { input.middleDown = true;	 return 0LL; }
+		case WM_MBUTTONUP: { input.middleDown = false; return 0LL; }
 		case WM_MOUSEWHEEL:
 		{
 			input.wheelDelta += GET_WHEEL_DELTA_WPARAM( wParam );
-			return 0;
+			return 0LL;
 		}
 		// End of Mouse Messages
 	}
@@ -144,7 +141,7 @@ LRESULT Window::HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) n
 std::optional<int> Window::ProcessMessages() noexcept
 {
 	MSG msg;
-	while( PeekMessage( &msg, nullptr, 0, 0, PM_REMOVE ) )
+	while( PeekMessage( &msg, nullptr, 0U, 0U, PM_REMOVE ) )
 	{
 		if( msg.message == WM_QUIT )
 		{

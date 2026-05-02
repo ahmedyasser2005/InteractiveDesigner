@@ -6,7 +6,7 @@
 int Application::Run()
 {
 	SetProcessDpiAwareness( PROCESS_PER_MONITOR_DPI_AWARE );
-	m_wnd = std::make_unique<Window>( "Interactive Designer App", 1280, 720 );
+	m_wnd = std::make_unique<Window>( "Interactive Designer App", 1280U, 720U );
 
 	while( true )
 	{
@@ -39,12 +39,12 @@ void Application::Update()
 	{
 		if( m_wnd->input.leftDown )
 		{
-			m_wnd->GetGfx().PutPixel( m_wnd->input.x, m_wnd->input.y, 255, 0, 0 );
+			m_wnd->GetGfx().PutPixel( m_wnd->input.pos, { 255U, 0U, 0U } );
 		}
 
 		if( m_wnd->input.IsKeyPressed( 'R' ) )
 		{
-			m_wnd->GetGfx().ClearScreen( 0u, 0u, 0u );
+			m_wnd->GetGfx().ClearScreen( { 0U, 0U, 0U } );
 		}
 	}
 
@@ -62,7 +62,7 @@ void Application::Render()
 		ImGui::Begin( "Canvas Controls" );
 		if( ImGui::Button( "Reset Canvas" ) )
 		{
-			m_wnd->GetGfx().ClearScreen( 0u, 0u, 0u );
+			m_wnd->GetGfx().ClearScreen( { 0U, 0U, 0U } );
 		}
 		ImGui::End();
 

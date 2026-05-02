@@ -1,6 +1,6 @@
 #pragma once
 #include "CustomWin.h"
-#include "../Graphics/Graphics.h"
+#include "Graphics.h"
 #include "Input.h"
 #include <memory>
 #include <optional>

@@ -1,5 +1,5 @@
 #pragma once
-#include "../Platform/CustomWin.h"
+#include "CustomWin.h"
 #include <string>
 #include <sstream>
 

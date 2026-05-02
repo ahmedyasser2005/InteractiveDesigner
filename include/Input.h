@@ -1,4 +1,5 @@
 #pragma once
+#include "DSUtils.h"
 #include <bitset>
 
 struct Input {
@@ -6,8 +7,7 @@ struct Input {
 	std::bitset<256> keys;
 
 	// Mouse States
-	int x = 0;
-	int y = 0;
+	DSUtils::Point pos;
 
 	int wheelDelta = 0;
 	bool middleDown = false;
