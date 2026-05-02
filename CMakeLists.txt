@@ -18,15 +18,7 @@ add_subdirectory(thirdparty)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
-add_executable(${PROJECT_NAME} #WIN32
-    ${SOURCES}
-)
+add_executable(${PROJECT_NAME} WIN32 ${SOURCES})
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-	"src"
-)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-    imgui
-	Shcore.lib
-)
+target_include_directories(${PROJECT_NAME} PRIVATE "src")
+target_link_libraries(${PROJECT_NAME} PRIVATE imgui Shcore.lib)
