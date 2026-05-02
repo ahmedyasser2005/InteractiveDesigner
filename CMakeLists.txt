@@ -1,7 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.25)
 
 project("InteractiveDesigner" 
-	VERSION 1.0 
+	VERSION 1.0
 	LANGUAGES CXX
 )
 
@@ -14,27 +14,19 @@ if(MSVC)
     add_compile_definitions(UNICODE _UNICODE)
 endif()
 
-set(SOURCES
-	"src/main.cpp"
-	"src/Platform/CustomWin.h"
-	"src/Platform/Input.h"
-	"src/Platform/Window.h"
-	"src/Platform/Window.cpp"
-	"src/Application/Application.h"
-	"src/Application/Application.cpp"
-	"src/Graphics/Graphics.h"
-	"src/Graphics/Graphics.cpp"
-	"src/Utils/ErrorUtils.h"
+add_subdirectory(thirdparty)
+
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+
+add_executable(${PROJECT_NAME} #WIN32
+    ${SOURCES}
 )
 
-add_executable(${PROJECT_NAME} # WIN32
-	${SOURCES}
+target_include_directories(${PROJECT_NAME} PRIVATE
+	"src"
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_link_libraries(${PROJECT_NAME} PRIVATE 
-	d3d11.lib 
-	dxgi.lib 
-	d3dcompiler.lib
+    imgui
 	Shcore.lib
 )
