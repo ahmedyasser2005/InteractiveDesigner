@@ -15,6 +15,7 @@ int Application::Run()
 			Shutdown();
 			return *exitCode;
 		}
+
 		Update();
 		Render();
 		m_wnd->GetGfx().EndFrame();
@@ -31,33 +32,40 @@ void Application::Shutdown()
 
 void Application::Update()
 {
+	ImGuiIO& imGuiIO = ImGui::GetIO();
+	// ONLY handle app input if the mouse isn't over an ImGui window
+	// AND ONLY handle keyboard if ImGui isn't typing in a text box.
+	if( !imGuiIO.WantCaptureMouse && !imGuiIO.WantCaptureKeyboard )
+	{
+		if( m_wnd->input.leftDown )
+		{
+			m_wnd->GetGfx().PutPixel( m_wnd->input.x, m_wnd->input.y, 255, 0, 0 );
+		}
 
-
+		if( m_wnd->input.IsKeyPressed( 'R' ) )
+		{
+			m_wnd->GetGfx().ClearScreen( 0u, 0u, 0u );
+		}
+	}
 
 }
 
 void Application::Render()
 {
-	m_wnd->GetGfx().ClearScreen( 255u, 255u, 255u );
-
 
 	// Start ImGui
 	{
-		// Start ImGui Frame
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
-		// Define UI
-		ImGui::Begin( "Toolbox" );
-		static float color[3] = { 1.0f, 1.0f, 1.0f };
-		ImGui::ColorEdit3( "Brush Color", color );
-		if( ImGui::Button( "Clear Canvas" ) )
+		ImGui::Begin( "Canvas Controls" );
+		if( ImGui::Button( "Reset Canvas" ) )
 		{
-			// logic to clear app state
+			m_wnd->GetGfx().ClearScreen( 0u, 0u, 0u );
 		}
 		ImGui::End();
-		// Finalize ImGui( this creates vertex buffers for the UI )
+
 		ImGui::Render();
 	}
 	// End ImGui

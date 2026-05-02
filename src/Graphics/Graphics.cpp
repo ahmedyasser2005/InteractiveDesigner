@@ -38,8 +38,8 @@ Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height ) : m_width( widt
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
-	ImGuiIO& io = ImGui::GetIO();
-	io.IniFilename = nullptr;
+	ImGuiIO& imGuiIO = ImGui::GetIO();
+	imGuiIO.IniFilename = nullptr;
 	ImGui::StyleColorsDark();
 
 	ImGui_ImplWin32_Init( hWnd );
@@ -81,7 +81,8 @@ void Graphics::EndFrame()
 	m_context->CopyResource( m_BackBuffer.Get(), m_pTexture.Get() );
 
 	m_context->OMSetRenderTargets( 1, m_renderTargetView.GetAddressOf(), nullptr );
-	ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData() );
+	if( ImGui::GetDrawData() ) ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData() );
+
 
 	DX_CALL( m_swapChain->Present( 1, 0 ) );
 }
