@@ -1,6 +1,5 @@
 #pragma once
 #include "CustomWin.h"
-#include "Graphics.h"
 #include "Input.h"
 #include <memory>
 #include <optional>
@@ -8,7 +7,7 @@
 
 class Window final {
 public:
-	explicit Window( std::string_view title, uint32_t width, uint32_t height );
+	explicit Window( std::string_view title, uint32_t width, uint32_t height, Input* input );
 	~Window() noexcept;
 
 	Window( const Window& ) = delete;
@@ -18,7 +17,6 @@ public:
 
 	static std::optional<int> ProcessMessages() noexcept;
 	HWND GetHandle() const noexcept { return m_hWnd; }
-	Graphics& GetGfx() const noexcept { return *m_gfx; }
 
 private:
 	static LRESULT CALLBACK HandleMsgSetup( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) noexcept;
@@ -27,10 +25,7 @@ private:
 
 private:
 	static constexpr const wchar_t* className = L"WindowClass";
-	HWND m_hWnd = nullptr;
-	std::unique_ptr<Graphics> m_gfx{ nullptr };
-
-public:
-	Input input;
+	HWND m_hWnd{ nullptr };
+	Input* m_input{ nullptr };
 
 };

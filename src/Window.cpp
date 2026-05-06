@@ -1,8 +1,9 @@
 #include "Window.h"
-#include "DSUtils.h"
+#include "Utility.h"
 #include <imgui.h>
 
-Window::Window( std::string_view title, uint32_t width, uint32_t height )
+Window::Window( std::string_view title, uint32_t width, uint32_t height, Input* input )
+	: m_input( input )
 {
 	WNDCLASSEX wc{
 		.cbSize = sizeof( WNDCLASSEX ),
@@ -36,8 +37,6 @@ Window::Window( std::string_view title, uint32_t width, uint32_t height )
 	);
 
 	if( !m_hWnd ) return; // TODO: Handle error
-
-	m_gfx = std::make_unique<Graphics>( m_hWnd, width, height );
 
 	ShowWindow( m_hWnd, SW_SHOW );
 }
@@ -98,13 +97,13 @@ LRESULT Window::HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) n
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN:
 		{
-			input.keys[wParam] = true;
+			m_input->keys[wParam] = true;
 			return 0LL;
 		}
 		case WM_KEYUP:
 		case WM_SYSKEYUP:
 		{
-			input.keys[wParam] = false;
+			m_input->keys[wParam] = false;
 			return 0LL;
 		}
 		// End of Keyboard Messages
@@ -115,20 +114,20 @@ LRESULT Window::HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) n
 		case WM_MOUSEMOVE:
 		{
 			const POINTS pt = MAKEPOINTS( lParam );
-			input.pos = { static_cast<float>(pt.x), static_cast<float>(pt.y) };
+			m_input->pos = { static_cast<float>(pt.x), static_cast<float>(pt.y) };
 			return 0LL;
 		}
-		case WM_LBUTTONDOWN: { input.leftDown = true;	 return 0LL; }
-		case WM_LBUTTONUP: { input.leftDown = false; return 0LL; }
+		case WM_LBUTTONDOWN: { m_input->leftDown = true;	 return 0LL; }
+		case WM_LBUTTONUP: { m_input->leftDown = false; return 0LL; }
 
-		case WM_RBUTTONDOWN: { input.rightDown = true;	 return 0LL; }
-		case WM_RBUTTONUP: { input.rightDown = false; return 0LL; }
+		case WM_RBUTTONDOWN: { m_input->rightDown = true;	 return 0LL; }
+		case WM_RBUTTONUP: { m_input->rightDown = false; return 0LL; }
 
-		case WM_MBUTTONDOWN: { input.middleDown = true;	 return 0LL; }
-		case WM_MBUTTONUP: { input.middleDown = false; return 0LL; }
+		case WM_MBUTTONDOWN: { m_input->middleDown = true;	 return 0LL; }
+		case WM_MBUTTONUP: { m_input->middleDown = false; return 0LL; }
 		case WM_MOUSEWHEEL:
 		{
-			input.wheelDelta += GET_WHEEL_DELTA_WPARAM( wParam );
+			m_input->wheelDelta += GET_WHEEL_DELTA_WPARAM( wParam );
 			return 0LL;
 		}
 		// End of Mouse Messages
