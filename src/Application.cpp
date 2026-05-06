@@ -3,10 +3,16 @@
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
 
+static constexpr const char* APP_NAME = "Interactive Designer App";
+static constexpr uint32_t WIDTH = 1280U, HEIGHT = 720U;
+
 int Application::Run()
 {
 	SetProcessDpiAwareness( PROCESS_PER_MONITOR_DPI_AWARE );
-	m_wnd = std::make_unique<Window>( "Interactive Designer App", 1280U, 720U );
+
+	m_input = std::make_unique<Input>();
+	m_wnd = std::make_unique<Window>( APP_NAME, WIDTH, HEIGHT, m_input.get() );
+	m_gfx = std::make_unique<Graphics>( m_wnd->GetHandle(), WIDTH, HEIGHT );
 
 	while( true )
 	{
@@ -17,8 +23,10 @@ int Application::Run()
 		}
 
 		Update();
+		m_gfx->ClearScreen( { 0U, 0U, 0U } );
 		Render();
-		m_wnd->GetGfx().EndFrame();
+		RenderUI();
+		m_gfx->EndFrame();
 	}
 }
 
@@ -30,44 +38,47 @@ void Application::Shutdown()
 
 }
 
+
+
 void Application::Update()
 {
 	ImGuiIO& imGuiIO = ImGui::GetIO();
 	// ONLY handle app input if the mouse isn't over an ImGui window
 	// AND ONLY handle keyboard if ImGui isn't typing in a text box.
-	if( !imGuiIO.WantCaptureMouse && !imGuiIO.WantCaptureKeyboard )
-	{
-		if( m_wnd->input.leftDown )
-		{
-			m_wnd->GetGfx().PutPixel( m_wnd->input.pos, { 255U, 0U, 0U } );
-		}
+	if( imGuiIO.WantCaptureMouse || imGuiIO.WantCaptureKeyboard ) return;
 
-		if( m_wnd->input.IsKeyPressed( 'R' ) )
-		{
-			m_wnd->GetGfx().ClearScreen( { 0U, 0U, 0U } );
-		}
-	}
+
+
+
+
 
 }
 
 void Application::Render()
 {
 
-	// Start ImGui
-	{
-		ImGui_ImplDX11_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
 
-		ImGui::Begin( "Canvas Controls" );
-		if( ImGui::Button( "Reset Canvas" ) )
-		{
-			m_wnd->GetGfx().ClearScreen( { 0U, 0U, 0U } );
-		}
-		ImGui::End();
 
-		ImGui::Render();
-	}
-	// End ImGui
 
+}
+
+void Application::RenderUI()
+{
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::SetNextWindowPos( ImVec2( ImGui::GetIO().DisplaySize.x - 150, 0 ) );
+	ImGui::SetNextWindowSize( ImVec2( 150, ImGui::GetIO().DisplaySize.y ) );
+
+	ImGui::Begin( "Toolbox", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize );
+
+	ImGui::Text( "Primitives" );
+	ImGui::Separator();
+
+	ImGui::Spacing();
+	ImGui::Separator();
+
+	ImGui::End();
+	ImGui::Render();
 }
