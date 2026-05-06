@@ -47,7 +47,7 @@ Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height ) : m_width( widt
 
 
 
-	m_pixelBuffer.resize( m_width * m_height, 0U );
+	m_frameBuffer.resize( m_width * m_height, 0U );
 
 	D3D11_TEXTURE2D_DESC td{};
 	{
@@ -75,18 +75,24 @@ Graphics::~Graphics()
 	ImGui::DestroyContext();
 }
 
-void Graphics::PutPixel( DSUtils::Point position, DSUtils::Color color ) noexcept
+
+
+
+void Graphics::PutPixel( Point position, Color color ) noexcept
 {
 	position += 0.5;
 	if( (uint32_t)position.x >= m_width || (uint32_t)position.y >= m_height ) return;
-	m_pixelBuffer[(uint32_t)position.y * m_width + (uint32_t)position.x] = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
+	m_frameBuffer[(uint32_t)position.y * m_width + (uint32_t)position.x] = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 }
 
-void Graphics::ClearScreen( DSUtils::Color color ) noexcept
+void Graphics::ClearScreen( Color color ) noexcept
 {
 	const uint32_t HEX = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
-	std::fill( m_pixelBuffer.begin(), m_pixelBuffer.end(), HEX );
+	std::fill( m_frameBuffer.begin(), m_frameBuffer.end(), HEX );
 }
+
+
+
 
 void Graphics::UpdateTexture()
 {
@@ -98,7 +104,7 @@ void Graphics::UpdateTexture()
 	if( SUCCEEDED( hr ) )
 	{
 		uint8_t* pDst = reinterpret_cast<uint8_t*>(msr.pData);
-		uint8_t* pSrc = reinterpret_cast<uint8_t*>(m_pixelBuffer.data());
+		uint8_t* pSrc = reinterpret_cast<uint8_t*>(m_frameBuffer.data());
 
 		// Copy row by row because GPU alignment (Pitch) might differ from Width
 		for( uint32_t y = 0U; y < m_height; y++ )

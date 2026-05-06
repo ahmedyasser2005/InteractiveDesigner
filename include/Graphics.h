@@ -1,5 +1,5 @@
 #pragma once
-#include "DSUtils.h"
+#include "Utility.h"
 #include <d3d11.h>
 #include <wrl.h>
 #include <vector>
@@ -9,8 +9,8 @@ public:
 	explicit Graphics( HWND hWnd, uint32_t width, uint32_t height );
 	~Graphics();
 
-	void PutPixel( DSUtils::Point position, DSUtils::Color color ) noexcept;
-	void ClearScreen( DSUtils::Color color ) noexcept;
+	void PutPixel( Point position, Color color ) noexcept;
+	void ClearScreen( Color color ) noexcept;
 
 	void UpdateTexture();
 	void EndFrame();
@@ -30,6 +30,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Texture2D>			 m_BackBuffer{ nullptr };
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	 m_renderTargetView{ nullptr };
 
-	std::vector<uint32_t> m_pixelBuffer{};
+	std::vector<uint32_t> m_frameBuffer{};
 	uint32_t m_width{}, m_height{};
 };
