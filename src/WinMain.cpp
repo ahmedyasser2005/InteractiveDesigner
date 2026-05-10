@@ -1,4 +1,5 @@
 ﻿#include "Application.h"
+#include "ErrorUtils.h"
 
 int WINAPI wWinMain(
 	[[maybe_unused]] _In_	  HINSTANCE hInstance,
@@ -7,6 +8,18 @@ int WINAPI wWinMain(
 	[[maybe_unused]] _In_	  int nCmdShow
 )
 {
-	Application app;
-	return app.Run();
+	try
+	{
+		return Application().Run();
+	}
+	catch( const std::exception& e )
+	{
+		ShowErrorMessageBoxA( "Fatal Error", e.what() );
+		return -1;
+	}
+	catch( ... )
+	{
+		ShowErrorMessageBoxA( "Fatal Error", "Unknown exception caught in WinMain." );
+		return -1;
+	}
 }
