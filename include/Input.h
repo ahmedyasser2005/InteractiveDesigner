@@ -1,5 +1,5 @@
 #pragma once
-#include "Utility.h"
+#include "GeoUtils.h"
 #include <bitset>
 
 struct Input {

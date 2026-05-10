@@ -1,5 +1,5 @@
 #pragma once
-#include "Utility.h"
+#include "GeoUtils.h"
 #include <d3d11.h>
 #include <wrl.h>
 #include <vector>
