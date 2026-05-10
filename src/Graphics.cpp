@@ -1,10 +1,11 @@
+#include "CustomWin.h"
 #include "Graphics.h"
 #include "ErrorUtils.h"
-#include <imgui.h>
-#include <imgui_impl_dx11.h>
-#include <imgui_impl_win32.h>
+#include <chrono>
+#include <cmath>
 
-Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height ) : m_width( width ), m_height( height )
+Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height )
+	: m_width( width ), m_height( height )
 {
 	DXGI_SWAP_CHAIN_DESC sd{};
 	{
@@ -30,22 +31,10 @@ Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height ) : m_width( widt
 	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-	DX_CALL( D3D11CreateDeviceAndSwapChain( nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-											createDeviceFlags, nullptr, 0U, D3D11_SDK_VERSION,
-											&sd, &m_swapChain, &m_device, nullptr, &m_context ) );
-
-
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-
-	ImGuiIO& imGuiIO = ImGui::GetIO();
-	imGuiIO.IniFilename = nullptr;
-	ImGui::StyleColorsDark();
-
-	ImGui_ImplWin32_Init( hWnd );
-	ImGui_ImplDX11_Init( m_device.Get(), m_context.Get() );
-
-
+	DX_CALL( D3D11CreateDeviceAndSwapChain(
+		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+		createDeviceFlags, nullptr, 0U, D3D11_SDK_VERSION,
+		&sd, &m_swapChain, &m_device, nullptr, &m_context ) );
 
 	m_frameBuffer.resize( m_width * m_height, 0U );
 
@@ -68,48 +57,109 @@ Graphics::Graphics( HWND hWnd, uint32_t width, uint32_t height ) : m_width( widt
 	DX_CALL( m_device->CreateRenderTargetView( m_BackBuffer.Get(), nullptr, m_renderTargetView.GetAddressOf() ) );
 }
 
-Graphics::~Graphics()
-{
-	ImGui_ImplDX11_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
-}
-
-
-
-
 void Graphics::PutPixel( Point position, Color color ) noexcept
 {
-	position += 0.5;
-	if( (uint32_t)position.x >= m_width || (uint32_t)position.y >= m_height ) return;
-	m_frameBuffer[(uint32_t)position.y * m_width + (uint32_t)position.x] = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
+	const int ix = static_cast<int>(std::round( position.x ));
+	const int iy = static_cast<int>(std::round( position.y ));
+
+	if( ix < 0 || iy < 0 || ix >= static_cast<int>( m_width ) || iy >= static_cast<int>( m_height ) )
+		return;
+
+	m_frameBuffer[iy * m_width + ix] = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 }
 
 void Graphics::ClearScreen( Color color ) noexcept
 {
-	const uint32_t HEX = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
-	std::fill( m_frameBuffer.begin(), m_frameBuffer.end(), HEX );
+	const uint32_t hex = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
+	std::fill( m_frameBuffer.begin(), m_frameBuffer.end(), hex );
 }
 
+int Graphics::DrawLineDDA( Point p0, Point p1, Color color, float* outRuntimeMs )
+{
+	auto start = std::chrono::high_resolution_clock::now();
 
+	const float dx = p1.x - p0.x;
+	const float dy = p1.y - p0.y;
+	const float steps = std::max( std::abs( dx ), std::abs( dy ) );
 
+	// Degenerate case: start == end
+	if( steps == 0.0f )
+	{
+		PutPixel( p0, color );
+		if( outRuntimeMs ) *outRuntimeMs = 0.0f;
+		return 1;
+	}
+
+	const float xInc = dx / steps;
+	const float yInc = dy / steps;
+	float x = p0.x, y = p0.y;
+	int pixelCount = 0;
+
+	for( int i = 0; i <= static_cast<int>(steps); ++i )
+	{
+		PutPixel( { x, y }, color );
+		++pixelCount;
+		x += xInc;
+		y += yInc;
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	if( outRuntimeMs )
+		*outRuntimeMs = std::chrono::duration<float, std::milli>( end - start ).count();
+
+	return pixelCount;
+}
+
+int Graphics::DrawLineBresenham( Point p0, Point p1, Color color, float* outRuntimeMs )
+{
+	auto start = std::chrono::high_resolution_clock::now();
+
+	int x0 = static_cast<int>(std::round( p0.x ));
+	int y0 = static_cast<int>(std::round( p0.y ));
+	int x1 = static_cast<int>(std::round( p1.x ));
+	int y1 = static_cast<int>(std::round( p1.y ));
+
+	const int dx = std::abs( x1 - x0 );
+	const int sx = (x0 < x1) ? 1 : -1;
+	const int dy = -std::abs( y1 - y0 );
+	const int sy = (y0 < y1) ? 1 : -1;
+	int err = dx + dy;
+	int pixelCount = 0;
+
+	while( true )
+	{
+		PutPixel( { static_cast<float>( x0 ), static_cast<float>( y0 ) }, color );
+		++pixelCount;
+
+		if( x0 == x1 && y0 == y1 ) break;
+
+		const int e2 = 2 * err;
+		if( e2 >= dy ) { err += dy; x0 += sx; }
+		if( e2 <= dx ) { err += dx; y0 += sy; }
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	if( outRuntimeMs )
+		*outRuntimeMs = std::chrono::duration<float, std::milli>( end - start ).count();
+
+	return pixelCount;
+}
 
 void Graphics::UpdateTexture()
 {
 	D3D11_MAPPED_SUBRESOURCE msr;
-	// Lock the GPU resource for writing
 	HRESULT hr = m_context->Map( m_pTexture.Get(), 0U, D3D11_MAP_WRITE_DISCARD, 0U, &msr );
-
 
 	if( SUCCEEDED( hr ) )
 	{
 		uint8_t* pDst = reinterpret_cast<uint8_t*>(msr.pData);
 		uint8_t* pSrc = reinterpret_cast<uint8_t*>(m_frameBuffer.data());
 
-		// Copy row by row because GPU alignment (Pitch) might differ from Width
-		for( uint32_t y = 0U; y < m_height; y++ )
+		for( uint32_t y = 0U; y < m_height; ++y )
 		{
-			memcpy( pDst + (y * msr.RowPitch), pSrc + (y * m_width * sizeof( uint32_t )), m_width * sizeof( uint32_t ) );
+			memcpy( pDst + (y * msr.RowPitch),
+				   pSrc + (y * m_width * sizeof( uint32_t )),
+				   m_width * sizeof( uint32_t ) );
 		}
 
 		m_context->Unmap( m_pTexture.Get(), 0 );
@@ -120,9 +170,10 @@ void Graphics::EndFrame()
 {
 	UpdateTexture();
 	m_context->CopyResource( m_BackBuffer.Get(), m_pTexture.Get() );
-
 	m_context->OMSetRenderTargets( 1U, m_renderTargetView.GetAddressOf(), nullptr );
-	if( ImGui::GetDrawData() ) ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData() );
+}
 
+void Graphics::Present()
+{
 	DX_CALL( m_swapChain->Present( 1U, 0U ) );
 }
