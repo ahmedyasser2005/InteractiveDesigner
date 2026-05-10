@@ -1,6 +1,8 @@
 #include "Window.h"
 #include "GeoUtils.h"
 #include <imgui.h>
+#include <windowsx.h>
+#include <stdexcept>
 
 Window::Window( std::string_view title, uint32_t width, uint32_t height, Input* input )
 	: m_input( input )
@@ -16,7 +18,7 @@ Window::Window( std::string_view title, uint32_t width, uint32_t height, Input* 
 	};
 	RegisterClassEx( &wc );
 
-	RECT wr = { 0L, 0L, static_cast<LONG>(width), static_cast<LONG>(height) };
+	RECT wr{ 0L, 0L, static_cast<LONG>(width), static_cast<LONG>(height) };
 	AdjustWindowRect( &wr, WS_OVERLAPPEDWINDOW, FALSE );
 
 	std::wstring wTitle( title.begin(), title.end() );
@@ -36,7 +38,8 @@ Window::Window( std::string_view title, uint32_t width, uint32_t height, Input* 
 		this // Passing 'this' pointer to WM_NCCREATE
 	);
 
-	if( !m_hWnd ) return; // TODO: Handle error
+	if( !m_hWnd )
+		throw std::runtime_error( "Failed to create window." );
 
 	ShowWindow( m_hWnd, SW_SHOW );
 }
@@ -113,17 +116,16 @@ LRESULT Window::HandleMsg( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) n
 		// Mouse Messages
 		case WM_MOUSEMOVE:
 		{
-			const POINTS pt = MAKEPOINTS( lParam );
-			m_input->pos = { static_cast<float>(pt.x), static_cast<float>(pt.y) };
+			const int x = GET_X_LPARAM( lParam );
+			const int y = GET_Y_LPARAM( lParam );
+			m_input->pos = { static_cast<float>(x), static_cast<float>(y) };
 			return 0LL;
 		}
-		case WM_LBUTTONDOWN: { m_input->leftDown = true;	 return 0LL; }
+		case WM_LBUTTONDOWN: { m_input->leftDown = true;  return 0LL; }
 		case WM_LBUTTONUP: { m_input->leftDown = false; return 0LL; }
-
-		case WM_RBUTTONDOWN: { m_input->rightDown = true;	 return 0LL; }
+		case WM_RBUTTONDOWN: { m_input->rightDown = true;  return 0LL; }
 		case WM_RBUTTONUP: { m_input->rightDown = false; return 0LL; }
-
-		case WM_MBUTTONDOWN: { m_input->middleDown = true;	 return 0LL; }
+		case WM_MBUTTONDOWN: { m_input->middleDown = true;  return 0LL; }
 		case WM_MBUTTONUP: { m_input->middleDown = false; return 0LL; }
 		case WM_MOUSEWHEEL:
 		{
@@ -144,7 +146,7 @@ std::optional<int> Window::ProcessMessages() noexcept
 	{
 		if( msg.message == WM_QUIT )
 		{
-			return (int)msg.wParam;
+			return static_cast<int>(msg.wParam);
 		}
 		TranslateMessage( &msg );
 		DispatchMessage( &msg );

@@ -27,5 +27,4 @@ private:
 	static constexpr const wchar_t* className = L"WindowClass";
 	HWND m_hWnd{ nullptr };
 	Input* m_input{ nullptr };
-
 };
