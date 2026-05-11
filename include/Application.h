@@ -35,9 +35,12 @@ private:
 		bool isSelected = false;
 	};
 
+
 	// Tool system
 	enum class Tool { Line, Circle, Ellipse, BezierCurve, BSplineCurve };
+	enum class LineAlgorithm { DDA, Bresenham };
 	Tool m_activeTool = Tool::Line;
+	LineAlgorithm m_currentLineAlgo = LineAlgorithm::Bresenham;
 
 	bool m_prevLeftDown = false;
 	bool m_prevRightDown = false;

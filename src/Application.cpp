@@ -307,7 +307,12 @@ void Application::Render()
 
 
 	for( const auto& line : m_lines )
-		m_gfx->DrawLineBresenham( line.p0, line.p1, line.color );
+	{
+		if( m_currentLineAlgo == LineAlgorithm::DDA )
+			m_gfx->DrawLineDDA( line.p0, line.p1, line.color );
+		else
+			m_gfx->DrawLineBresenham( line.p0, line.p1, line.color );
+	}
 
 	for( const auto& circle : m_circles )
 		m_gfx->DrawCircleMidpoint( circle.center, circle.radius, circle.color );
@@ -545,6 +550,9 @@ void Application::RenderUI()
 	if( m_activeTool == Tool::Line )
 	{
 		ImGui::Text( "Line Tool" );
+		ImGui::RadioButton( "DDA", (int*)&m_currentLineAlgo, (int)LineAlgorithm::DDA );
+		ImGui::SameLine();
+		ImGui::RadioButton( "Bresenham", (int*)&m_currentLineAlgo, (int)LineAlgorithm::Bresenham );
 		ImGui::Text( "Click two points on canvas." );
 	}
 	if( m_activeTool == Tool::Circle )
