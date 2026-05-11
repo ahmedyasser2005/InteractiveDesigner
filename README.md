@@ -41,7 +41,7 @@ A lightweight 2D vector graphics application built from scratch in C++ using Dir
 
 1. **Clone the Repository:**
 	```bash
-	git clone <repository-url>
+	git clone https://github.com/ahmedyasser2005/InteractiveDesigner.git
 	cd InteractiveDesigner
 2. Configure & Build:
 The project is CMake-ready. You can open the root folder in Visual Studio or use the command line:
