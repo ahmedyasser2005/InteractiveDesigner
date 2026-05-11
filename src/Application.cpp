@@ -72,6 +72,17 @@ void Application::Update()
 				}
 				else
 				{
+					// Finalize line – capture metrics using the currently selected algorithm
+					int pix = 0;
+					float time = 0.0f;
+					if( m_currentLineAlgo == LineAlgorithm::DDA )
+						pix = m_gfx->DrawLineDDA( m_lineStart, clickPos, m_currentColor, &time );
+					else
+						pix = m_gfx->DrawLineBresenham( m_lineStart, clickPos, m_currentColor, &time );
+					m_lastLinePixelCount = pix;
+					m_lastLineTimeMs = time;
+
+					// Store the line for persistent drawing
 					m_lines.push_back( { m_lineStart, clickPos, m_currentColor } );
 					m_lineWaitingFirst = true;
 					m_drawingPreview = false;
@@ -305,10 +316,18 @@ void Application::Render()
 	m_gfx->ClearScreen( { 30, 30, 30 } );
 
 
-
+	// Normal user lines
 	for( const auto& line : m_lines )
 	{
 		if( m_currentLineAlgo == LineAlgorithm::DDA )
+			m_gfx->DrawLineDDA( line.p0, line.p1, line.color );
+		else
+			m_gfx->DrawLineBresenham( line.p0, line.p1, line.color );
+	}
+	// Draw comparison test lines (DDA vs Bresenham test)
+	for( const auto& line : m_comparisonLines )
+	{
+		if( line.algorithm == 0 )
 			m_gfx->DrawLineDDA( line.p0, line.p1, line.color );
 		else
 			m_gfx->DrawLineBresenham( line.p0, line.p1, line.color );
@@ -421,6 +440,14 @@ void Application::RenderUI()
 				m_lines.clear();
 				m_circles.clear();
 				m_ellipses.clear();
+
+				m_lastLinePixelCount = 0;
+				m_lastLineTimeMs = 0.0f;
+				m_comparisonLines.clear();
+				m_ddaPixelCount = 0;
+				m_bresenhamPixelCount = 0;
+				m_ddaTimeMs = 0.0f;
+				m_bresenhamTimeMs = 0.0f;
 
 				m_lastCirclePixelCount = 0;
 				m_lastCircleTimeMs = 0.0f;
@@ -550,11 +577,50 @@ void Application::RenderUI()
 	if( m_activeTool == Tool::Line )
 	{
 		ImGui::Text( "Line Tool" );
+
+		// Radio buttons for algorithm selection (existing)
 		ImGui::RadioButton( "DDA", (int*)&m_currentLineAlgo, (int)LineAlgorithm::DDA );
 		ImGui::SameLine();
 		ImGui::RadioButton( "Bresenham", (int*)&m_currentLineAlgo, (int)LineAlgorithm::Bresenham );
 		ImGui::Text( "Click two points on canvas." );
+
+		if( m_lastLinePixelCount > 0 )
+		{
+			ImGui::Separator();
+			ImGui::Text( "Last Drawn Line Metrics:" );
+			ImGui::Text( "  Pixels: %d", m_lastLinePixelCount );
+			ImGui::Text( "  Time: %.3f ms", m_lastLineTimeMs );
+		}
+
+		// --- Comparison button and metrics ---
+		ImGui::Separator();
+		ImGui::Text( "Algorithm Comparison" );
+		if( ImGui::Button( "Draw Test Lines (DDA vs Bresenham)" ) )
+		{
+			// Clear previous comparison lines
+			m_comparisonLines.clear();
+
+			// Add DDA test line
+			m_comparisonLines.push_back( { {200,300}, {500,500}, Color( 255,0,0 ), 0 } );
+			// Add Bresenham test line
+			m_comparisonLines.push_back( { {600,300}, {900,500}, Color( 0,0,255 ), 1 } );
+
+			// Capture metrics
+			m_ddaPixelCount = m_gfx->DrawLineDDA( { 200,300 }, { 500,500 }, Color( 255, 0, 0 ), &m_ddaTimeMs );
+			m_bresenhamPixelCount = m_gfx->DrawLineBresenham( { 600,300 }, { 900,500 }, Color( 0, 0, 255 ), &m_bresenhamTimeMs );
+		}
+
+		// Display metrics
+		if( m_ddaPixelCount > 0 || m_bresenhamPixelCount > 0 )
+		{
+			ImGui::Text( "DDA: %d pixels, %.3f ms", m_ddaPixelCount, m_ddaTimeMs );
+			ImGui::Text( "Bresenham: %d pixels, %.3f ms", m_bresenhamPixelCount, m_bresenhamTimeMs );
+			ImGui::Text( "(Lines drawn in red and blue)" );
+		}
 	}
+
+
+
 	if( m_activeTool == Tool::Circle )
 	{
 		ImGui::Text( "Circle Tool" );
@@ -616,6 +682,14 @@ void Application::RenderUI()
 		m_lines.clear();
 		m_circles.clear();
 		m_ellipses.clear();
+
+		m_lastLinePixelCount = 0;
+		m_lastLineTimeMs = 0.0f;
+		m_comparisonLines.clear();
+		m_ddaPixelCount = 0;
+		m_bresenhamPixelCount = 0;
+		m_ddaTimeMs = 0.0f;
+		m_bresenhamTimeMs = 0.0f;
 
 		m_lastCirclePixelCount = 0;
 		m_lastCircleTimeMs = 0.0f;

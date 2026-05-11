@@ -22,6 +22,7 @@ private:
 
 	// Persistent storage
 	struct Line { Point p0, p1; Color color; };
+	struct ComparisonLine { Point p0, p1; Color color; int algorithm; }; // 0 = DDA, 1 = Bresenham
 	struct Circle { Point center; int radius; Color color; };
 	struct Ellipse { Point center; int rx, ry; Color color; };
 	struct BezierCurve {
@@ -42,6 +43,7 @@ private:
 	Tool m_activeTool = Tool::Line;
 	LineAlgorithm m_currentLineAlgo = LineAlgorithm::Bresenham;
 
+
 	bool m_prevLeftDown = false;
 	bool m_prevRightDown = false;
 
@@ -50,6 +52,14 @@ private:
 	Point m_lineStart;
 	bool  m_drawingPreview = false;
 	Point m_previewEnd;
+
+	// Metrics for line algorithm
+	int    m_lastLinePixelCount = 0;
+	float  m_lastLineTimeMs = 0.0f;
+	int    m_ddaPixelCount = 0;
+	float  m_ddaTimeMs = 0.0f;
+	int    m_bresenhamPixelCount = 0;
+	float  m_bresenhamTimeMs = 0.0f;
 
 	// Temporary state for circle placement
 	bool  m_circleWaitingCenter = true;   // true = waiting for center, false = waiting for radius
@@ -94,6 +104,7 @@ private:
 
 
 	std::vector<Line>		 m_lines;
+	std::vector<ComparisonLine> m_comparisonLines;
 	std::vector<Circle>		 m_circles;
 	std::vector<Ellipse>	 m_ellipses;
 	std::vector<BezierCurve> m_curves;
