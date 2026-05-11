@@ -39,7 +39,7 @@ A lightweight 2D vector graphics application built from scratch in C++ using Dir
 
 1. **Clone the Repository:**
 	```bash
-	git clone <repository-url>
+	git clone https://github.com/ahmedyasser2005/InteractiveDesigner.git
 	cd InteractiveDesigner
 
 
