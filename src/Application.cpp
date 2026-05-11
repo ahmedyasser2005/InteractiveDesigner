@@ -1,9 +1,10 @@
 #include "Application.h"
-#include "BezierUtils.h"
+#include "CurveUtils.h"
 #include "ErrorUtils.h"
 #include <ShellScalingApi.h>
 #include <imgui.h>
 #include <format>
+#include <cmath>
 
 static constexpr const char* APP_NAME = "Interactive Designer App";
 static constexpr uint32_t WIDTH = 1280U, HEIGHT = 720U;
@@ -115,34 +116,126 @@ void Application::Update()
 				// Future tools: Ellipse, etc.
 		}
 	}
-
 	if( m_activeTool == Tool::BezierCurve )
 	{
-		if( leftClicked )
-		{
-			if( !m_curveMode || m_currentCurve == nullptr )
-			{
-				// Start a new curve
-				m_curves.push_back( BezierCurve{} );
-				m_currentCurve = &m_curves.back();
-				m_currentCurve->color = m_currentColor;
-				m_curveMode = true;
-				m_selectedControlPoint = -1;
-			}
-			// Add a new control point at mouse position
-			m_currentCurve->controlPoints.push_back( m_input->pos );
-		}
-
-		// Right-click to finish curve (reset curve mode)
-		if( m_input->rightDown && !m_prevRightDown )  // need to track previous right button state
+		// ---- Right-click: finish current curve (always) ----
+		if( m_input->rightDown && !m_prevRightDown )
 		{
 			m_curveMode = false;
-			m_currentCurve = nullptr;
+			m_currentCurveIndex = -1;
 			m_selectedControlPoint = -1;
+			m_selectedCurveForPoint = -1;
+			m_draggingPoint = false;
 		}
+
+		// ---- Left-click handling ----
+		if( leftClicked )
+		{
+			// Try to select/drag an existing control point (only when NOT adding points)
+			if( !m_curveMode )
+			{
+				float minDist = 8.0f;  // pixel radius
+				int hitCurve = -1, hitPoint = -1;
+				for( size_t ci = 0; ci < m_curves.size(); ++ci )
+				{
+					const auto& curve = m_curves[ci];
+					for( size_t pi = 0; pi < curve.controlPoints.size(); ++pi )
+					{
+						float dx = curve.controlPoints[pi].x - m_input->pos.x;
+						float dy = curve.controlPoints[pi].y - m_input->pos.y;
+						float dist = sqrtf( dx * dx + dy * dy );
+						if( dist < minDist )
+						{
+							minDist = dist;
+							hitCurve = (int)ci;
+							hitPoint = (int)pi;
+						}
+					}
+				}
+				if( hitCurve >= 0 )
+				{
+					// Start dragging the selected point
+					m_selectedCurveForPoint = hitCurve;
+					m_selectedControlPoint = hitPoint;
+					m_draggingPoint = true;
+					// Do NOT add a new point or start a new curve
+				}
+				else
+				{
+					// No hit: start a new curve
+					m_curves.push_back( BezierCurve{} );
+					m_currentCurveIndex = (int)m_curves.size() - 1;
+					m_curves.back().color = m_currentColor;
+					m_curveMode = true;
+					m_selectedControlPoint = -1;
+					// Add first point
+					if( m_currentCurveIndex >= 0 )
+						m_curves[m_currentCurveIndex].controlPoints.push_back( m_input->pos );
+				}
+			}
+			else // m_curveMode == true: we are adding points to the current curve
+			{
+				if( m_currentCurveIndex >= 0 )
+					m_curves[m_currentCurveIndex].controlPoints.push_back( m_input->pos );
+			}
+		}
+
+		// ---- Dragging update (every frame) ----
+		if( m_draggingPoint && m_input->leftDown )
+		{
+			if( m_selectedCurveForPoint >= 0 && m_selectedControlPoint >= 0 )
+			{
+				m_curves[m_selectedCurveForPoint].controlPoints[m_selectedControlPoint] = m_input->pos;
+			}
+		}
+		else
+		{
+			m_draggingPoint = false;
+		}
+
 		m_prevRightDown = m_input->rightDown;
 	}
+	if( m_activeTool == Tool::BezierCurve && !m_curveMode )
+	{
+		if( leftClicked && !m_draggingPoint )
+		{
+			// Check if we clicked on any control point (radius 5px)
+			float minDist = 5.0f;
+			m_selectedCurveForPoint = -1;
+			m_selectedControlPoint = -1;
+			for( size_t ci = 0; ci < m_curves.size(); ++ci )
+			{
+				auto& curve = m_curves[ci];
+				for( size_t pi = 0; pi < curve.controlPoints.size(); ++pi )
+				{
+					float dx = curve.controlPoints[pi].x - m_input->pos.x;
+					float dy = curve.controlPoints[pi].y - m_input->pos.y;
+					float dist = sqrtf( dx * dx + dy * dy );
+					if( dist < minDist )
+					{
+						minDist = dist;
+						m_selectedCurveForPoint = (int)ci;
+						m_selectedControlPoint = (int)pi;
+					}
+				}
+			}
+			if( m_selectedCurveForPoint >= 0 )
+				m_draggingPoint = true;
+		}
 
+		// Dragging
+		if( m_draggingPoint && (m_input->leftDown) )
+		{
+			if( m_selectedCurveForPoint >= 0 && m_selectedControlPoint >= 0 )
+			{
+				m_curves[m_selectedCurveForPoint].controlPoints[m_selectedControlPoint] = m_input->pos;
+			}
+		}
+		else
+		{
+			m_draggingPoint = false;
+		}
+	}
 
 	if( m_drawingPreview && !m_lineWaitingFirst )
 	{
@@ -160,6 +253,13 @@ void Application::Update()
 		m_ellipseRyPreview = static_cast<int>(std::abs( current.y - m_ellipseCenter.y ));
 	}
 
+
+	if( m_animateDeCasteljau )
+	{
+		m_deCasteljauT += m_animationDir;
+		if( m_deCasteljauT >= 1.0f ) { m_deCasteljauT = 1.0f; m_animationDir = -0.01f; }
+		if( m_deCasteljauT <= 0.0f ) { m_deCasteljauT = 0.0f; m_animationDir = 0.01f; }
+	}
 }
 
 void Application::Render()
@@ -177,12 +277,20 @@ void Application::Render()
 	for( const auto& ellipse : m_ellipses )
 		m_gfx->DrawEllipseMidpoint( ellipse.center, ellipse.rx, ellipse.ry, ellipse.color );
 
-	for( const auto& curve : m_curves )
+	// Draw all Bezier curves and their control points
+	for( size_t ci = 0; ci < m_curves.size(); ++ci )
 	{
+		const auto& curve = m_curves[ci];
 		drawBezierCurve( *m_gfx, curve.controlPoints, curve.color, 200 );
+
 		// Draw control points as small circles
-		for( const auto& pt : curve.controlPoints )
-			m_gfx->DrawCircleMidpoint( pt, 3, Color( 255, 255, 0 ) );  // yellow points
+		for( size_t pi = 0; pi < curve.controlPoints.size(); ++pi )
+		{
+			Color ptColor = (m_selectedCurveForPoint == (int)ci && m_selectedControlPoint == (int)pi)
+				? Color( 0, 255, 255 )   // cyan for selected
+				: Color( 255, 255, 0 );  // yellow
+			m_gfx->DrawCircleMidpoint( curve.controlPoints[pi], 4, ptColor );
+		}
 	}
 
 
@@ -190,13 +298,44 @@ void Application::Render()
 		m_gfx->DrawLineDDA( m_lineStart, m_previewEnd, m_currentColor );
 
 	if( m_drawingCirclePreview && !m_circleWaitingCenter )
-		m_gfx->DrawCircleMidpoint( m_circleCenter, m_circleRadiusPreview, m_currentColor );
+		m_lastCirclePixelCount = m_gfx->DrawCircleMidpoint( m_circleCenter, m_circleRadiusPreview, m_currentColor, &m_lastCircleTimeMs );
 
 	if( m_drawingEllipsePreview && !m_ellipseWaitingFirst )
-		m_gfx->DrawEllipseMidpoint( m_ellipseCenter, m_ellipseRxPreview, m_ellipseRyPreview, m_currentColor );
+		m_lastEllipsePixelCount = m_gfx->DrawEllipseMidpoint( m_ellipseCenter, m_ellipseRxPreview, m_ellipseRyPreview, m_currentColor, &m_lastEllipseTimeMs );
 
+	// De Casteljau visualization (if enabled and a valid curve is selected)
+	if( m_showDeCasteljau && m_selectedCurveIndex >= 0 && m_selectedCurveIndex < (int)m_curves.size() )
+	{
+		const auto& curve = m_curves[m_selectedCurveIndex];
+		const auto& points = curve.controlPoints;
+		if( points.size() >= 2 )
+		{
+			auto levels = computeDeCasteljauLevels( points, m_deCasteljauT );
 
+			// Colors: level 0 = yellow, deeper levels = orange/red
+			Color levelColors[] = { {255,255,0}, {255,200,0}, {255,150,0}, {255,100,0}, {255,50,0} };
 
+			for( size_t lvl = 0; lvl < levels.size(); ++lvl )
+			{
+				Color col = levelColors[std::min( lvl, sizeof( levelColors ) / sizeof( levelColors[0] ) - 1 )];
+				const auto& pts = levels[lvl];
+
+				// Draw lines between consecutive points at this level
+				for( size_t i = 0; i + 1 < pts.size(); ++i )
+					m_gfx->DrawLineBresenham( pts[i], pts[i + 1], col );
+
+				// Draw small circles at each point
+				for( const auto& pt : pts )
+					m_gfx->DrawCircleMidpoint( pt, 3, col );
+			}
+			// The final point (curve point at t) is the only point in the last level
+			if( !levels.empty() && !levels.back().empty() )
+			{
+				Point finalPoint = levels.back()[0];
+				m_gfx->DrawCircleMidpoint( finalPoint, 5, { 255,255,255 } ); // highlight
+			}
+		}
+	}
 }
 
 void Application::RenderUI()
@@ -224,9 +363,20 @@ void Application::RenderUI()
 				m_circles.clear();
 				m_ellipses.clear();
 
+				m_lastCirclePixelCount = 0;
+				m_lastCircleTimeMs = 0.0f;
+				m_lastEllipsePixelCount = 0;
+				m_lastEllipseTimeMs = 0.0f;
+
 				m_curves.clear();
 				m_curveMode = false;
-				m_currentCurve = nullptr;
+				m_currentCurveIndex = -1;
+				m_selectedCurveIndex = -1;
+				m_showDeCasteljau = false;
+				m_animateDeCasteljau = false;
+				m_selectedCurveForPoint = -1;
+				m_draggingPoint = false;
+
 			}
 			ImGui::EndMenu();
 		}
@@ -246,6 +396,10 @@ void Application::RenderUI()
 		m_activeTool = Tool::Line;
 		m_lineWaitingFirst = true;
 		m_drawingPreview = false;
+
+		m_draggingPoint = false;
+		m_selectedCurveForPoint = -1;
+		m_selectedControlPoint = -1;
 	}
 	if( ImGui::Button( "Circle", ImVec2( 80, 35 ) ) )
 	{
@@ -254,6 +408,10 @@ void Application::RenderUI()
 		m_drawingCirclePreview = false;
 		m_lineWaitingFirst = true;
 		m_drawingPreview = false;
+
+		m_draggingPoint = false;
+		m_selectedCurveForPoint = -1;
+		m_selectedControlPoint = -1;
 	}
 	if( ImGui::Button( "Ellipse", ImVec2( 80, 35 ) ) )
 	{
@@ -262,15 +420,21 @@ void Application::RenderUI()
 		m_drawingEllipsePreview = false;
 		m_lineWaitingFirst = true;
 		m_circleWaitingCenter = true;
+
+		m_draggingPoint = false;
+		m_selectedCurveForPoint = -1;
+		m_selectedControlPoint = -1;
 	}
 	if( ImGui::Button( "Bezier", ImVec2( 80, 35 ) ) )
 	{
 		m_activeTool = Tool::BezierCurve;
-		// Reset other tools' states
 		m_lineWaitingFirst = true;
 		m_circleWaitingCenter = true;
 		m_ellipseWaitingFirst = true;
-		// Don't reset curve editing yet
+
+		m_draggingPoint = false;
+		m_selectedCurveForPoint = -1;
+		m_selectedControlPoint = -1;
 	}
 	// Future buttons: idk, etc.
 
@@ -315,6 +479,15 @@ void Application::RenderUI()
 			ImGui::Text( "Click to set center." );
 		else
 			ImGui::Text( "Click to set radius." );
+
+		// --- Metrics for preview (Part A3 comparison) ---
+		if( m_drawingCirclePreview && !m_circleWaitingCenter )
+		{
+			ImGui::Separator();
+			ImGui::Text( "Preview Metrics:" );
+			ImGui::Text( "  Pixels: %d", m_lastCirclePixelCount );
+			ImGui::Text( "  Time: %.3f ms", m_lastCircleTimeMs );
+		}
 	}
 	if( m_activeTool == Tool::Ellipse )
 	{
@@ -323,12 +496,22 @@ void Application::RenderUI()
 			ImGui::Text( "Click to set center." );
 		else
 			ImGui::Text( "Click to set rx (width) and ry (height)." );
+
+		// --- Metrics for preview (Part A3 comparison) ---
+		if( m_drawingEllipsePreview && !m_ellipseWaitingFirst )
+		{
+			ImGui::Separator();
+			ImGui::Text( "Preview Metrics:" );
+			ImGui::Text( "  Pixels: %d", m_lastEllipsePixelCount );
+			ImGui::Text( "  Time: %.3f ms", m_lastEllipseTimeMs );
+		}
 	}
 	if( m_activeTool == Tool::BezierCurve )
 	{
 		ImGui::Text( "Bezier Curve Tool" );
-		if( m_curveMode && m_currentCurve )
-			ImGui::Text( "Adding points: %zu so far. Right-click to finish.", m_currentCurve->controlPoints.size() );
+		if( m_curveMode && m_currentCurveIndex >= 0 && m_currentCurveIndex < (int)m_curves.size() )
+			ImGui::Text( "Adding points: %zu so far. Right-click to finish.",
+						m_curves[m_currentCurveIndex].controlPoints.size() );
 		else
 			ImGui::Text( "Click to start a new curve." );
 	}
@@ -342,9 +525,46 @@ void Application::RenderUI()
 		m_circles.clear();
 		m_ellipses.clear();
 
+		m_lastCirclePixelCount = 0;
+		m_lastCircleTimeMs = 0.0f;
+		m_lastEllipsePixelCount = 0;
+		m_lastEllipseTimeMs = 0.0f;
+
 		m_curves.clear();
 		m_curveMode = false;
-		m_currentCurve = nullptr;
+		m_currentCurveIndex = -1;
+		m_selectedCurveIndex = -1;
+		m_showDeCasteljau = false;
+		m_animateDeCasteljau = false;
+		m_selectedCurveForPoint = -1;
+		m_draggingPoint = false;
+	}
+
+	ImGui::Separator();
+	ImGui::Text( "De Casteljau" );
+	ImGui::Checkbox( "Show construction", &m_showDeCasteljau );
+	if( m_showDeCasteljau )
+	{
+		if( ImGui::BeginCombo( "Curve", m_selectedCurveIndex >= 0 ?
+							   std::to_string( m_selectedCurveIndex ).c_str() : "None" ) )
+		{
+			for( int i = 0; i < (int)m_curves.size(); ++i )
+			{
+				if( ImGui::Selectable( ("Curve " + std::to_string( i )).c_str(),
+									   m_selectedCurveIndex == i ) )
+					m_selectedCurveIndex = i;
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::SliderFloat( "t (parameter)", &m_deCasteljauT, 0.0f, 1.0f );
+		if( ImGui::Button( "Animate t" ) )
+			m_animateDeCasteljau = !m_animateDeCasteljau;
+		ImGui::SameLine();
+		if( ImGui::Button( "Reset t" ) )
+		{
+			m_deCasteljauT = 0.5f;
+			m_animateDeCasteljau = false;
+		}
 	}
 	ImGui::End();
 

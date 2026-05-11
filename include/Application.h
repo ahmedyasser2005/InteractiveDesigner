@@ -56,12 +56,26 @@ private:
 	int   m_ellipseRyPreview = 0;
 	bool  m_drawingEllipsePreview = false;
 
+	// Metrics for circle/ellipse preview
+	int    m_lastCirclePixelCount = 0;
+	float  m_lastCircleTimeMs = 0.0f;
+	int    m_lastEllipsePixelCount = 0;
+	float  m_lastEllipseTimeMs = 0.0f;
+
 	// Temporary state for curve placement
-	BezierCurve* m_currentCurve = nullptr;
+	int m_currentCurveIndex = -1;
 	int  m_selectedControlPoint = -1;
 	bool m_curveMode = false;
 	bool m_draggingPoint = false;
-	bool m_editingCurve = false;
+
+	// De Casteljau visualization
+	bool m_showDeCasteljau = false;
+	float m_deCasteljauT = 0.5f;
+	int m_selectedCurveIndex = -1;		// index into m_curves
+	int m_selectedCurveForPoint = -1;   // index of curve whose control point is selected
+	bool m_animateDeCasteljau = false;
+	float m_animationDir = 0.01f;
+
 
 	std::vector<Line>		 m_lines;
 	std::vector<Circle>		 m_circles;

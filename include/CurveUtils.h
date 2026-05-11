@@ -1,4 +1,7 @@
-#include "BezierUtils.h"
+#pragma once
+#include "GeoUtils.h"
+#include "Graphics.h"
+#include <vector>
 
 // Compute binomial coefficient n choose k
 int binomial( int n, int k )
@@ -44,4 +47,28 @@ void drawBezierCurve( Graphics& gfx, const std::vector<Point>& points, Color col
 			gfx.DrawLineBresenham( pPrev, p, color );
 		}
 	}
+}
+
+
+// Returns a vector of vectors: each inner vector contains points at that interpolation level.
+// level 0 = original control points, level 1 = first linear interpolation, etc.
+static std::vector<std::vector<Point>> computeDeCasteljauLevels( const std::vector<Point>& points, float t )
+{
+	std::vector<std::vector<Point>> levels;
+	if( points.empty() ) return levels;
+
+	levels.push_back( points );
+	std::vector<Point> current = points;
+	while( current.size() > 1 )
+	{
+		std::vector<Point> next;
+		for( size_t i = 0; i < current.size() - 1; ++i )
+		{
+			Point p = current[i] * (1.0f - t) + current[i + 1] * t;
+			next.push_back( p );
+		}
+		levels.push_back( next );
+		current = next;
+	}
+	return levels;
 }
