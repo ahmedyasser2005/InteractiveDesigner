@@ -51,7 +51,7 @@ The project is CMake-ready. You can open the root folder in Visual Studio or use
 	cmake .. -A x64
 	cmake --build . --config Release
 	
-3. **Run:**:
+3. **Run:**
 Execute `build/Release/InteractiveDesigner.exe`.
 
 > [!IMPORTANT]
@@ -67,7 +67,7 @@ Execute `build/Release/InteractiveDesigner.exe`.
 | **Creating Curves** | Left-click to place control points. **Right-click** to finalize. |
 | **Editing Curves** | Click and drag any existing control point to reshape the curve. |
 | **Algorithm Comparison** | In the Line Properties panel, click **"Draw Test Lines"**. Red = DDA, Blue = Bresenham. |
-| **Animation** | Select a Bezier curve, enable "De Casteljau" in the panel, and use the t-slider. |
+| **Animation** | Select a Bezier curve, enable "De Casteljau" in the panel, and use the $t$-slider. |
 
 ---
 
