@@ -31,6 +31,12 @@ private:
 	Point m_previewEnd;
 	bool  m_prevLeftDown = false;
 
+	// Temporary state for circle placement
+	bool  m_circleWaitingCenter = true;   // true = waiting for center, false = waiting for radius
+	Point m_circleCenter;
+	int   m_circleRadiusPreview = 0;
+	bool  m_drawingCirclePreview = false;
+
 	// Persistent storage
 	struct Line { Point p0, p1; Color color; };
 	struct Circle { Point center; int radius; Color color; };

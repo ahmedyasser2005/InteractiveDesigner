@@ -75,13 +75,38 @@ void Application::Update()
 					m_drawingPreview = false;
 				}
 				break;
-
-				// Future tools: Circle, Ellipse, etc.
+			case Tool::Circle:
+				if( m_circleWaitingCenter )
+				{
+					m_circleCenter = clickPos;
+					m_circleWaitingCenter = false;
+					m_drawingCirclePreview = true;
+					m_circleRadiusPreview = 0;
+				}
+				else
+				{
+					// Finalize the circle
+					int radius = static_cast<int>(std::hypot( clickPos.x - m_circleCenter.x,
+															  clickPos.y - m_circleCenter.y ));
+					m_circles.push_back( { m_circleCenter, radius, m_currentColor } );
+					m_circleWaitingCenter = true;
+					m_drawingCirclePreview = false;
+				}
+				break;
+				// Future tools: Ellipse, etc.
 		}
 	}
 
 	if( m_drawingPreview && !m_lineWaitingFirst )
+	{
 		m_previewEnd = m_input->pos;
+	}
+	if( m_drawingCirclePreview && !m_circleWaitingCenter )
+	{
+		Point current = m_input->pos;
+		m_circleRadiusPreview = static_cast<int>(std::hypot( current.x - m_circleCenter.x, current.y - m_circleCenter.y ));
+	}
+
 }
 
 void Application::Render()
@@ -89,10 +114,22 @@ void Application::Render()
 	m_gfx->ClearScreen( { 30, 30, 30 } );
 
 	for( const auto& line : m_lines )
+	{
 		m_gfx->DrawLineBresenham( line.p0, line.p1, line.color );
+	}
+	for( const auto& circle : m_circles )
+	{
+		m_gfx->DrawCircleMidpoint( circle.center, circle.radius, circle.color );
+	}
 
 	if( m_drawingPreview )
+	{
 		m_gfx->DrawLineDDA( m_lineStart, m_previewEnd, m_currentColor );
+	}
+	if( m_drawingCirclePreview && !m_circleWaitingCenter )
+	{
+		m_gfx->DrawCircleMidpoint( m_circleCenter, m_circleRadiusPreview, m_currentColor );
+	}
 }
 
 void Application::RenderUI()
@@ -139,7 +176,16 @@ void Application::RenderUI()
 		m_lineWaitingFirst = true;
 		m_drawingPreview = false;
 	}
-	// Future buttons: Circle, Ellipse, Bezier, etc.
+	if( ImGui::Button( "Circle", ImVec2( 80, 35 ) ) )
+	{
+		m_activeTool = Tool::Circle;
+		m_circleWaitingCenter = true;
+		m_drawingCirclePreview = false;
+		// Also reset line preview if needed
+		m_lineWaitingFirst = true;
+		m_drawingPreview = false;
+	}
+	// Future buttons: Ellipse, Bezier, etc.
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -175,6 +221,14 @@ void Application::RenderUI()
 		ImGui::Text( "Line Tool" );
 		ImGui::Text( "Click two points on canvas." );
 	}
+	if( m_activeTool == Tool::Circle )
+	{
+		ImGui::Text( "Circle Tool" );
+		if( m_circleWaitingCenter )
+			ImGui::Text( "Click to set center." );
+		else
+			ImGui::Text( "Click to set radius." );
+	}
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -197,6 +251,7 @@ void Application::RenderUI()
 	switch( m_activeTool )
 	{
 		case Tool::Line: toolName = "Line"; break;
+		case Tool::Circle: toolName = "Circle"; break;
 	}
 
 	auto status = std::format( "Tool: {}  |  Mouse: ({:.0f}, {:.0f})  |  Items: {}",

@@ -145,6 +145,55 @@ int Graphics::DrawLineBresenham( Point p0, Point p1, Color color, float* outRunt
 	return pixelCount;
 }
 
+int Graphics::DrawCircleMidpoint( Point center, int radius, Color color, float* outRuntimeMs )
+{
+	auto start = std::chrono::high_resolution_clock::now();
+
+	if( radius <= 0 )
+		return 0;
+
+	int x = 0;
+	int y = radius;
+	int d = 1 - radius;          // initial decision parameter
+	int pixelCount = 0;
+
+	// Helper lambda to draw all 8 symmetric points
+	auto drawSymmetric = [&]( int cx, int cy, int xo, int yo )
+	{
+		PutPixel( { static_cast<float>(cx + xo), static_cast<float>(cy + yo) }, color );
+		PutPixel( { static_cast<float>(cx - xo), static_cast<float>(cy + yo) }, color );
+		PutPixel( { static_cast<float>(cx + xo), static_cast<float>(cy - yo) }, color );
+		PutPixel( { static_cast<float>(cx - xo), static_cast<float>(cy - yo) }, color );
+		PutPixel( { static_cast<float>(cx + yo), static_cast<float>(cy + xo) }, color );
+		PutPixel( { static_cast<float>(cx - yo), static_cast<float>(cy + xo) }, color );
+		PutPixel( { static_cast<float>(cx + yo), static_cast<float>(cy - xo) }, color );
+		PutPixel( { static_cast<float>(cx - yo), static_cast<float>(cy - xo) }, color );
+		pixelCount += 8;
+	};
+
+	int cx = static_cast<int>(std::round( center.x ));
+	int cy = static_cast<int>(std::round( center.y ));
+
+	while( x <= y )
+	{
+		drawSymmetric( cx, cy, x, y );
+		x++;
+		if( d < 0 )
+			d += 2 * x + 1;
+		else
+		{
+			y--;
+			d += 2 * (x - y) + 1;
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	if( outRuntimeMs )
+		*outRuntimeMs = std::chrono::duration<float, std::milli>( end - start ).count();
+
+	return pixelCount;
+}
+
 void Graphics::UpdateTexture()
 {
 	D3D11_MAPPED_SUBRESOURCE msr;
