@@ -2,6 +2,8 @@
 
 A lightweight 2D vector graphics application built from scratch in C++ using DirectX 11 and Dear ImGui. This project focuses on the manual implementation of fundamental rasterization and curve algorithms without the use of built-in graphics primitives.
 
+<img src="docs/imgs/Interface.png" alt="Software Interface Preview Image">
+
 ---
 
 ## Features
@@ -30,7 +32,7 @@ A lightweight 2D vector graphics application built from scratch in C++ using Dir
 *   **Graphics API:** DirectX 11 (Windows SDK)
 
 ### Third-Party Libraries
-*   **Dear ImGui (Docking Branch):** Used for the graphical user interface.
+*   **Dear ImGui (Main Branch):** Used for the graphical user interface.
 *   *Note: All core drawing logic is custom-coded.*
 
 ---
@@ -41,8 +43,6 @@ A lightweight 2D vector graphics application built from scratch in C++ using Dir
 	```bash
 	git clone <repository-url>
 	cd InteractiveDesigner
-
-
 2. Configure & Build:
 The project is CMake-ready. You can open the root folder in Visual Studio or use the command line:
 	```DOS
@@ -50,7 +50,6 @@ The project is CMake-ready. You can open the root folder in Visual Studio or use
 	cd build
 	cmake .. -A x64
 	cmake --build . --config Release
-	
 3. **Run:**
 Execute `build/Release/InteractiveDesigner.exe`.
 
