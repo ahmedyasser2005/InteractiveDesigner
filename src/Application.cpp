@@ -510,6 +510,7 @@ void Application::RenderUI()
 		m_selectedBSplineCurveForPoint = -1;
 		m_selectedBSplinePoint = -1;
 	}
+
 	// Future buttons: idk, etc.
 
 	ImGui::Spacing();
@@ -655,6 +656,69 @@ void Application::RenderUI()
 			m_deCasteljauT = 0.5f;
 			m_animateDeCasteljau = false;
 		}
+	}
+
+	ImGui::Separator();
+	ImGui::Text( "Letter Generator" );
+	if( ImGui::Button( "Add Letter 'S'" ) )
+	{
+		// Center-ish position: 600, 380
+		// Segment 1: Top hook
+		BezierCurve seg1;
+		seg1.color = m_currentColor;
+		seg1.controlPoints = {
+			{ 720, 280 },  // Tip of top hook
+			{ 720, 220 },  // Top-right pull
+			{ 540, 220 },  // Top-left pull
+			{ 540, 300 }   // Mid-left inflection point
+		};
+		m_curves.push_back( seg1 );
+
+		// Segment 2: The "Spine" (Cross-over)
+		BezierCurve seg2;
+		seg2.color = m_currentColor;
+		seg2.controlPoints = {
+			{ 540, 300 },
+			{ 540, 380 },  // Pulling down
+			{ 720, 340 },  // Pulling up
+			{ 720, 420 }   // Mid-right inflection
+		};
+		m_curves.push_back( seg2 );
+
+		// Segment 3: Bottom hook
+		BezierCurve seg3;
+		seg3.color = m_currentColor;
+		seg3.controlPoints = {
+			{ 720, 420 },
+			{ 720, 500 },  // Bottom-right pull
+			{ 540, 500 },  // Bottom-left pull
+			{ 540, 440 }   // Tip of bottom hook
+		};
+		m_curves.push_back( seg3 );
+	}
+	if( ImGui::Button( "Add Letter 'C'" ) )
+	{
+		// Segment 1: Upper arc
+		BezierCurve topArc;
+		topArc.color = m_currentColor;
+		topArc.controlPoints = {
+			{ 720, 280 },  // Top terminal
+			{ 720, 220 },  // Pull up-right
+			{ 540, 220 },  // Pull up-left
+			{ 540, 360 }   // Mid-left point
+		};
+		m_curves.push_back( topArc );
+
+		// Segment 2: Lower arc
+		BezierCurve bottomArc;
+		bottomArc.color = m_currentColor;
+		bottomArc.controlPoints = {
+			{ 540, 360 },
+			{ 540, 500 },  // Pull down-left
+			{ 720, 500 },  // Pull down-right
+			{ 720, 440 }   // Bottom terminal
+		};
+		m_curves.push_back( bottomArc );
 	}
 	ImGui::End();
 
