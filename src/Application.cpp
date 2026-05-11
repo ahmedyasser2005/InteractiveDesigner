@@ -116,6 +116,7 @@ void Application::Update()
 				// Future tools: Ellipse, etc.
 		}
 	}
+
 	if( m_activeTool == Tool::BezierCurve )
 	{
 		// ---- Right-click: finish current curve (always) ----
@@ -195,47 +196,84 @@ void Application::Update()
 
 		m_prevRightDown = m_input->rightDown;
 	}
-	if( m_activeTool == Tool::BezierCurve && !m_curveMode )
+
+	if( m_activeTool == Tool::BSplineCurve )
 	{
-		if( leftClicked && !m_draggingPoint )
+		// Right-click: finish current curve
+		if( m_input->rightDown && !m_prevRightDown )
 		{
-			// Check if we clicked on any control point (radius 5px)
-			float minDist = 5.0f;
-			m_selectedCurveForPoint = -1;
-			m_selectedControlPoint = -1;
-			for( size_t ci = 0; ci < m_curves.size(); ++ci )
-			{
-				auto& curve = m_curves[ci];
-				for( size_t pi = 0; pi < curve.controlPoints.size(); ++pi )
-				{
-					float dx = curve.controlPoints[pi].x - m_input->pos.x;
-					float dy = curve.controlPoints[pi].y - m_input->pos.y;
-					float dist = sqrtf( dx * dx + dy * dy );
-					if( dist < minDist )
-					{
-						minDist = dist;
-						m_selectedCurveForPoint = (int)ci;
-						m_selectedControlPoint = (int)pi;
-					}
-				}
-			}
-			if( m_selectedCurveForPoint >= 0 )
-				m_draggingPoint = true;
+			m_bsplineMode = false;
+			m_currentBSplineIndex = -1;
+			m_selectedBSplinePoint = -1;
+			m_selectedBSplineCurveForPoint = -1;
+			m_draggingBSplinePoint = false;
 		}
 
-		// Dragging
-		if( m_draggingPoint && (m_input->leftDown) )
+		// Left-click handling
+		if( leftClicked )
 		{
-			if( m_selectedCurveForPoint >= 0 && m_selectedControlPoint >= 0 )
+			// Try to select/drag existing control point (only when NOT adding points)
+			if( !m_bsplineMode )
 			{
-				m_curves[m_selectedCurveForPoint].controlPoints[m_selectedControlPoint] = m_input->pos;
+				float minDist = 8.0f;
+				int hitCurve = -1, hitPoint = -1;
+				for( size_t ci = 0; ci < m_bsplines.size(); ++ci )
+				{
+					const auto& curve = m_bsplines[ci];
+					for( size_t pi = 0; pi < curve.controlPoints.size(); ++pi )
+					{
+						float dx = curve.controlPoints[pi].x - m_input->pos.x;
+						float dy = curve.controlPoints[pi].y - m_input->pos.y;
+						float dist = sqrtf( dx * dx + dy * dy );
+						if( dist < minDist )
+						{
+							minDist = dist;
+							hitCurve = (int)ci;
+							hitPoint = (int)pi;
+						}
+					}
+				}
+				if( hitCurve >= 0 )
+				{
+					// Start dragging the selected point
+					m_selectedBSplineCurveForPoint = hitCurve;
+					m_selectedBSplinePoint = hitPoint;
+					m_draggingBSplinePoint = true;
+				}
+				else
+				{
+					// Start a new curve
+					m_bsplines.push_back( BSplineCurve{} );
+					m_currentBSplineIndex = (int)m_bsplines.size() - 1;
+					m_bsplines.back().color = m_currentColor;
+					m_bsplineMode = true;
+					m_selectedBSplinePoint = -1;
+					// Add first control point
+					if( m_currentBSplineIndex >= 0 )
+						m_bsplines[m_currentBSplineIndex].controlPoints.push_back( m_input->pos );
+				}
+			}
+			else // m_bsplineMode == true → adding points
+			{
+				if( m_currentBSplineIndex >= 0 )
+					m_bsplines[m_currentBSplineIndex].controlPoints.push_back( m_input->pos );
+			}
+		}
+
+		// Dragging update
+		if( m_draggingBSplinePoint && m_input->leftDown )
+		{
+			if( m_selectedBSplineCurveForPoint >= 0 && m_selectedBSplinePoint >= 0 )
+			{
+				m_bsplines[m_selectedBSplineCurveForPoint].controlPoints[m_selectedBSplinePoint] = m_input->pos;
 			}
 		}
 		else
 		{
-			m_draggingPoint = false;
+			m_draggingBSplinePoint = false;
 		}
 	}
+
 
 	if( m_drawingPreview && !m_lineWaitingFirst )
 	{
@@ -289,6 +327,22 @@ void Application::Render()
 			Color ptColor = (m_selectedCurveForPoint == (int)ci && m_selectedControlPoint == (int)pi)
 				? Color( 0, 255, 255 )   // cyan for selected
 				: Color( 255, 255, 0 );  // yellow
+			m_gfx->DrawCircleMidpoint( curve.controlPoints[pi], 4, ptColor );
+		}
+	}
+
+	// Draw B‑Spline curves
+	for( size_t ci = 0; ci < m_bsplines.size(); ++ci )
+	{
+		const auto& curve = m_bsplines[ci];
+		drawBSplineCurve( *m_gfx, curve.controlPoints, curve.color, 200 );
+
+		// Draw control points as small circles (magenta)
+		for( size_t pi = 0; pi < curve.controlPoints.size(); ++pi )
+		{
+			Color ptColor = (m_selectedBSplineCurveForPoint == (int)ci && m_selectedBSplinePoint == (int)pi)
+				? Color( 0, 255, 255 )   // cyan for selected
+				: Color( 255, 0, 255 );  // magenta
 			m_gfx->DrawCircleMidpoint( curve.controlPoints[pi], 4, ptColor );
 		}
 	}
@@ -377,6 +431,12 @@ void Application::RenderUI()
 				m_selectedCurveForPoint = -1;
 				m_draggingPoint = false;
 
+				m_bsplines.clear();
+				m_bsplineMode = false;
+				m_currentBSplineIndex = -1;
+				m_selectedBSplineCurveForPoint = -1;
+				m_selectedBSplinePoint = -1;
+				m_draggingBSplinePoint = false;
 			}
 			ImGui::EndMenu();
 		}
@@ -435,6 +495,20 @@ void Application::RenderUI()
 		m_draggingPoint = false;
 		m_selectedCurveForPoint = -1;
 		m_selectedControlPoint = -1;
+	}
+	if( ImGui::Button( "B-Spline", ImVec2( 80, 35 ) ) )
+	{
+		m_activeTool = Tool::BSplineCurve;
+		m_lineWaitingFirst = true;
+		m_circleWaitingCenter = true;
+		m_ellipseWaitingFirst = true;
+		m_draggingPoint = false;
+		m_selectedCurveForPoint = -1;
+		m_selectedControlPoint = -1;
+
+		m_draggingBSplinePoint = false;
+		m_selectedBSplineCurveForPoint = -1;
+		m_selectedBSplinePoint = -1;
 	}
 	// Future buttons: idk, etc.
 
@@ -515,6 +589,15 @@ void Application::RenderUI()
 		else
 			ImGui::Text( "Click to start a new curve." );
 	}
+	if( m_activeTool == Tool::BSplineCurve )
+	{
+		ImGui::Text( "Uniform Cubic B-Spline Tool" );
+		if( m_bsplineMode && m_currentBSplineIndex >= 0 && m_currentBSplineIndex < (int)m_bsplines.size() )
+			ImGui::Text( "Adding points: %zu so far.\nRight-click to finish.",
+						m_bsplines[m_currentBSplineIndex].controlPoints.size() );
+		else
+			ImGui::Text( "Click to start a new curve.\nNeed at least 4 points to draw curve." );
+	}
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -538,6 +621,13 @@ void Application::RenderUI()
 		m_animateDeCasteljau = false;
 		m_selectedCurveForPoint = -1;
 		m_draggingPoint = false;
+
+		m_bsplines.clear();
+		m_bsplineMode = false;
+		m_currentBSplineIndex = -1;
+		m_selectedBSplineCurveForPoint = -1;
+		m_selectedBSplinePoint = -1;
+		m_draggingBSplinePoint = false;
 	}
 
 	ImGui::Separator();
@@ -582,6 +672,7 @@ void Application::RenderUI()
 		case Tool::Circle: toolName = "Circle"; break;
 		case Tool::Ellipse: toolName = "Ellipse"; break;
 		case Tool::BezierCurve: toolName = "Bezier Curve (click points, right-click finish)"; break;
+		case Tool::BSplineCurve: toolName = "B-Spline (cubic, click points, right-click finish)"; break;
 	}
 
 	auto status = std::format( "Tool: {}  |  Mouse: ({:.0f}, {:.0f})  |  Items: {}",

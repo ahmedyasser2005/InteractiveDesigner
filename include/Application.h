@@ -29,9 +29,14 @@ private:
 		Color color;
 		bool isSelected = false;  // for future drag/drop
 	};
+	struct BSplineCurve {
+		std::vector<Point> controlPoints;
+		Color color;
+		bool isSelected = false;
+	};
 
 	// Tool system
-	enum class Tool { Line, Circle, Ellipse, BezierCurve };
+	enum class Tool { Line, Circle, Ellipse, BezierCurve, BSplineCurve };
 	Tool m_activeTool = Tool::Line;
 
 	bool m_prevLeftDown = false;
@@ -68,6 +73,13 @@ private:
 	bool m_curveMode = false;
 	bool m_draggingPoint = false;
 
+	// Temporary state for B‑spline placement
+	int  m_currentBSplineIndex = -1;
+	bool m_bsplineMode = false;
+	int  m_selectedBSplinePoint = -1;
+	int  m_selectedBSplineCurveForPoint = -1;
+	bool m_draggingBSplinePoint = false;
+
 	// De Casteljau visualization
 	bool m_showDeCasteljau = false;
 	float m_deCasteljauT = 0.5f;
@@ -77,10 +89,14 @@ private:
 	float m_animationDir = 0.01f;
 
 
+
 	std::vector<Line>		 m_lines;
 	std::vector<Circle>		 m_circles;
 	std::vector<Ellipse>	 m_ellipses;
 	std::vector<BezierCurve> m_curves;
+	std::vector<BSplineCurve> m_bsplines;
+
+
 
 	// Drawing color
 	Color m_currentColor{ 255U, 0U, 0U, 255U };
