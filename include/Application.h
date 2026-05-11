@@ -37,12 +37,22 @@ private:
 	int   m_circleRadiusPreview = 0;
 	bool  m_drawingCirclePreview = false;
 
+	// Temporary state for ellipse placement
+	bool  m_ellipseWaitingFirst = true;   // true = waiting center, false = waiting rx/ry
+	Point m_ellipseCenter;
+	int   m_ellipseRxPreview = 0;
+	int   m_ellipseRyPreview = 0;
+	bool  m_drawingEllipsePreview = false;
+
+
 	// Persistent storage
 	struct Line { Point p0, p1; Color color; };
 	struct Circle { Point center; int radius; Color color; };
+	struct Ellipse { Point center; int rx, ry; Color color; };
 
-	std::vector<Line>   m_lines;
-	std::vector<Circle> m_circles;
+	std::vector<Line>    m_lines;
+	std::vector<Circle>  m_circles;
+	std::vector<Ellipse> m_ellipses;
 
 	// Drawing color
 	Color m_currentColor{ 255U, 0U, 0U, 255U };

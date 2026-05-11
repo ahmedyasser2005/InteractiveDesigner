@@ -194,6 +194,75 @@ int Graphics::DrawCircleMidpoint( Point center, int radius, Color color, float* 
 	return pixelCount;
 }
 
+int Graphics::DrawEllipseMidpoint( Point center, int rx, int ry, Color color, float* outRuntimeMs )
+{
+	auto start = std::chrono::high_resolution_clock::now();
+
+	if( rx <= 0 || ry <= 0 )
+		return 0;
+
+	int cx = static_cast<int>(std::round( center.x ));
+	int cy = static_cast<int>(std::round( center.y ));
+	int x = 0;
+	int y = ry;
+	int pixelCount = 0;
+
+	// Decision parameters
+	long long rx2 = static_cast<long long>(rx) * rx;
+	long long ry2 = static_cast<long long>(ry) * ry;
+	long long twoRx2 = 2 * rx2;
+	long long twoRy2 = 2 * ry2;
+
+	long long p1 = ry2 - rx2 * ry + (rx2 / 4);   // initial decision parameter for region 1
+
+	auto drawSymmetric = [&]( int xo, int yo )
+	{
+		PutPixel( { static_cast<float>(cx + xo), static_cast<float>(cy + yo) }, color );
+		PutPixel( { static_cast<float>(cx - xo), static_cast<float>(cy + yo) }, color );
+		PutPixel( { static_cast<float>(cx + xo), static_cast<float>(cy - yo) }, color );
+		PutPixel( { static_cast<float>(cx - xo), static_cast<float>(cy - yo) }, color );
+		pixelCount += 4;
+	};
+
+	// Region 1: slope magnitude < 1
+	while( 2 * ry2 * x <= 2 * rx2 * y )
+	{
+		drawSymmetric( x, y );
+		x++;
+		if( p1 < 0 )
+			p1 += twoRy2 * x + ry2;
+		else
+		{
+			y--;
+			p1 += twoRy2 * x - twoRx2 * y + ry2;
+		}
+	}
+
+	// Region 2: slope magnitude > 1
+	long long p2 = ry2 * static_cast<long long>( x + 0.5 ) * (x + 0.5)
+		+ rx2 * static_cast<long long>(y - 1) * (y - 1)
+		- rx2 * ry2;
+
+	while( y >= 0 )
+	{
+		drawSymmetric( x, y );
+		y--;
+		if( p2 > 0 )
+			p2 -= twoRx2 * y + rx2;
+		else
+		{
+			x++;
+			p2 += twoRy2 * x - twoRx2 * y + rx2;
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	if( outRuntimeMs )
+		*outRuntimeMs = std::chrono::duration<float, std::milli>( end - start ).count();
+
+	return pixelCount;
+}
+
 void Graphics::UpdateTexture()
 {
 	D3D11_MAPPED_SUBRESOURCE msr;

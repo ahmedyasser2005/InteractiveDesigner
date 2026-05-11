@@ -16,6 +16,7 @@ public:
 	int DrawLineDDA( Point p0, Point p1, Color color, float* outRuntimeMs = nullptr );
 	int DrawLineBresenham( Point p0, Point p1, Color color, float* outRuntimeMs = nullptr );
 	int DrawCircleMidpoint( Point center, int radius, Color color, float* outRuntimeMs = nullptr );
+	int DrawEllipseMidpoint( Point center, int rx, int ry, Color color, float* outRuntimeMs = nullptr );
 
 	void UpdateTexture();
 	void EndFrame();

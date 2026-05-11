@@ -86,11 +86,29 @@ void Application::Update()
 				else
 				{
 					// Finalize the circle
-					int radius = static_cast<int>(std::hypot( clickPos.x - m_circleCenter.x,
-															  clickPos.y - m_circleCenter.y ));
+					int radius = static_cast<int>(std::hypot( clickPos.x - m_circleCenter.x, clickPos.y - m_circleCenter.y ));
 					m_circles.push_back( { m_circleCenter, radius, m_currentColor } );
 					m_circleWaitingCenter = true;
 					m_drawingCirclePreview = false;
+				}
+				break;
+			case Tool::Ellipse:
+				if( m_ellipseWaitingFirst )
+				{
+					m_ellipseCenter = clickPos;
+					m_ellipseWaitingFirst = false;
+					m_drawingEllipsePreview = true;
+					m_ellipseRxPreview = 0;
+					m_ellipseRyPreview = 0;
+				}
+				else
+				{
+					// Finalize: rx = |dx|, ry = |dy| from center to click
+					int rx = static_cast<int>(std::abs( clickPos.x - m_ellipseCenter.x ));
+					int ry = static_cast<int>(std::abs( clickPos.y - m_ellipseCenter.y ));
+					m_ellipses.push_back( { m_ellipseCenter, rx, ry, m_currentColor } );
+					m_ellipseWaitingFirst = true;
+					m_drawingEllipsePreview = false;
 				}
 				break;
 				// Future tools: Ellipse, etc.
@@ -106,30 +124,42 @@ void Application::Update()
 		Point current = m_input->pos;
 		m_circleRadiusPreview = static_cast<int>(std::hypot( current.x - m_circleCenter.x, current.y - m_circleCenter.y ));
 	}
-
+	if( m_drawingEllipsePreview && !m_ellipseWaitingFirst )
+	{
+		Point current = m_input->pos;
+		m_ellipseRxPreview = static_cast<int>(std::abs( current.x - m_ellipseCenter.x ));
+		m_ellipseRyPreview = static_cast<int>(std::abs( current.y - m_ellipseCenter.y ));
+	}
 }
 
 void Application::Render()
 {
 	m_gfx->ClearScreen( { 30, 30, 30 } );
 
+
+
 	for( const auto& line : m_lines )
-	{
 		m_gfx->DrawLineBresenham( line.p0, line.p1, line.color );
-	}
+
 	for( const auto& circle : m_circles )
-	{
 		m_gfx->DrawCircleMidpoint( circle.center, circle.radius, circle.color );
-	}
+
+	for( const auto& ellipse : m_ellipses )
+		m_gfx->DrawEllipseMidpoint( ellipse.center, ellipse.rx, ellipse.ry, ellipse.color );
+
+
 
 	if( m_drawingPreview )
-	{
 		m_gfx->DrawLineDDA( m_lineStart, m_previewEnd, m_currentColor );
-	}
+
 	if( m_drawingCirclePreview && !m_circleWaitingCenter )
-	{
 		m_gfx->DrawCircleMidpoint( m_circleCenter, m_circleRadiusPreview, m_currentColor );
-	}
+
+	if( m_drawingEllipsePreview && !m_ellipseWaitingFirst )
+		m_gfx->DrawEllipseMidpoint( m_ellipseCenter, m_ellipseRxPreview, m_ellipseRyPreview, m_currentColor );
+
+
+
 }
 
 void Application::RenderUI()
@@ -155,6 +185,7 @@ void Application::RenderUI()
 			{
 				m_lines.clear();
 				m_circles.clear();
+				m_ellipses.clear();
 			}
 			ImGui::EndMenu();
 		}
@@ -164,8 +195,7 @@ void Application::RenderUI()
 	// ----- Left Toolbar -----
 	ImGui::SetNextWindowPos( ImVec2( 0, menuHeight ), ImGuiCond_Always );
 	ImGui::SetNextWindowSize( ImVec2( toolbarWidth, display.y - menuHeight - statusHeight ), ImGuiCond_Always );
-	ImGui::Begin( "Toolbar", nullptr,
-		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar );
+	ImGui::Begin( "Toolbar", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar );
 
 	ImGui::Text( "Draw" );
 	ImGui::Separator();
@@ -181,11 +211,19 @@ void Application::RenderUI()
 		m_activeTool = Tool::Circle;
 		m_circleWaitingCenter = true;
 		m_drawingCirclePreview = false;
-		// Also reset line preview if needed
 		m_lineWaitingFirst = true;
 		m_drawingPreview = false;
 	}
-	// Future buttons: Ellipse, Bezier, etc.
+	if( ImGui::Button( "Ellipse", ImVec2( 80, 35 ) ) )
+	{
+		m_activeTool = Tool::Ellipse;
+		m_ellipseWaitingFirst = true;
+		m_drawingEllipsePreview = false;
+		m_lineWaitingFirst = true;
+		m_circleWaitingCenter = true;
+	}
+
+	// Future buttons: Bezier, etc.
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -229,6 +267,14 @@ void Application::RenderUI()
 		else
 			ImGui::Text( "Click to set radius." );
 	}
+	if( m_activeTool == Tool::Ellipse )
+	{
+		ImGui::Text( "Ellipse Tool" );
+		if( m_ellipseWaitingFirst )
+			ImGui::Text( "Click to set center." );
+		else
+			ImGui::Text( "Click to set rx (width) and ry (height)." );
+	}
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -237,6 +283,7 @@ void Application::RenderUI()
 	{
 		m_lines.clear();
 		m_circles.clear();
+		m_ellipses.clear();
 	}
 	ImGui::End();
 
@@ -252,11 +299,13 @@ void Application::RenderUI()
 	{
 		case Tool::Line: toolName = "Line"; break;
 		case Tool::Circle: toolName = "Circle"; break;
+		case Tool::Ellipse: toolName = "Ellipse"; break;
 	}
 
 	auto status = std::format( "Tool: {}  |  Mouse: ({:.0f}, {:.0f})  |  Items: {}",
 							  toolName, m_input->pos.x, m_input->pos.y,
-							  m_lines.size() + m_circles.size() );
+							  m_lines.size() + m_circles.size() + m_ellipses.size() );
+
 	ImGui::TextUnformatted( status.c_str() );
 	ImGui::End();
 }
