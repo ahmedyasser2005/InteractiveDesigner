@@ -20,16 +20,28 @@ private:
 	std::unique_ptr<Input>    m_input;
 	std::unique_ptr<GUI>      m_gui;
 
+	// Persistent storage
+	struct Line { Point p0, p1; Color color; };
+	struct Circle { Point center; int radius; Color color; };
+	struct Ellipse { Point center; int rx, ry; Color color; };
+	struct BezierCurve {
+		std::vector<Point> controlPoints;
+		Color color;
+		bool isSelected = false;  // for future drag/drop
+	};
+
 	// Tool system
-	enum class Tool { Line, Circle, Ellipse };
+	enum class Tool { Line, Circle, Ellipse, BezierCurve };
 	Tool m_activeTool = Tool::Line;
+
+	bool m_prevLeftDown = false;
+	bool m_prevRightDown = false;
 
 	// Temporary state for line placement
 	bool  m_lineWaitingFirst = true;
 	Point m_lineStart;
 	bool  m_drawingPreview = false;
 	Point m_previewEnd;
-	bool  m_prevLeftDown = false;
 
 	// Temporary state for circle placement
 	bool  m_circleWaitingCenter = true;   // true = waiting for center, false = waiting for radius
@@ -44,15 +56,17 @@ private:
 	int   m_ellipseRyPreview = 0;
 	bool  m_drawingEllipsePreview = false;
 
+	// Temporary state for curve placement
+	BezierCurve* m_currentCurve = nullptr;
+	int  m_selectedControlPoint = -1;
+	bool m_curveMode = false;
+	bool m_draggingPoint = false;
+	bool m_editingCurve = false;
 
-	// Persistent storage
-	struct Line { Point p0, p1; Color color; };
-	struct Circle { Point center; int radius; Color color; };
-	struct Ellipse { Point center; int rx, ry; Color color; };
-
-	std::vector<Line>    m_lines;
-	std::vector<Circle>  m_circles;
-	std::vector<Ellipse> m_ellipses;
+	std::vector<Line>		 m_lines;
+	std::vector<Circle>		 m_circles;
+	std::vector<Ellipse>	 m_ellipses;
+	std::vector<BezierCurve> m_curves;
 
 	// Drawing color
 	Color m_currentColor{ 255U, 0U, 0U, 255U };

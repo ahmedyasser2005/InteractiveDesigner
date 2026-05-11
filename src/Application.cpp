@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "BezierUtils.h"
 #include "ErrorUtils.h"
 #include <ShellScalingApi.h>
 #include <imgui.h>
@@ -115,6 +116,34 @@ void Application::Update()
 		}
 	}
 
+	if( m_activeTool == Tool::BezierCurve )
+	{
+		if( leftClicked )
+		{
+			if( !m_curveMode || m_currentCurve == nullptr )
+			{
+				// Start a new curve
+				m_curves.push_back( BezierCurve{} );
+				m_currentCurve = &m_curves.back();
+				m_currentCurve->color = m_currentColor;
+				m_curveMode = true;
+				m_selectedControlPoint = -1;
+			}
+			// Add a new control point at mouse position
+			m_currentCurve->controlPoints.push_back( m_input->pos );
+		}
+
+		// Right-click to finish curve (reset curve mode)
+		if( m_input->rightDown && !m_prevRightDown )  // need to track previous right button state
+		{
+			m_curveMode = false;
+			m_currentCurve = nullptr;
+			m_selectedControlPoint = -1;
+		}
+		m_prevRightDown = m_input->rightDown;
+	}
+
+
 	if( m_drawingPreview && !m_lineWaitingFirst )
 	{
 		m_previewEnd = m_input->pos;
@@ -130,6 +159,7 @@ void Application::Update()
 		m_ellipseRxPreview = static_cast<int>(std::abs( current.x - m_ellipseCenter.x ));
 		m_ellipseRyPreview = static_cast<int>(std::abs( current.y - m_ellipseCenter.y ));
 	}
+
 }
 
 void Application::Render()
@@ -147,6 +177,13 @@ void Application::Render()
 	for( const auto& ellipse : m_ellipses )
 		m_gfx->DrawEllipseMidpoint( ellipse.center, ellipse.rx, ellipse.ry, ellipse.color );
 
+	for( const auto& curve : m_curves )
+	{
+		drawBezierCurve( *m_gfx, curve.controlPoints, curve.color, 200 );
+		// Draw control points as small circles
+		for( const auto& pt : curve.controlPoints )
+			m_gfx->DrawCircleMidpoint( pt, 3, Color( 255, 255, 0 ) );  // yellow points
+	}
 
 
 	if( m_drawingPreview )
@@ -186,6 +223,10 @@ void Application::RenderUI()
 				m_lines.clear();
 				m_circles.clear();
 				m_ellipses.clear();
+
+				m_curves.clear();
+				m_curveMode = false;
+				m_currentCurve = nullptr;
 			}
 			ImGui::EndMenu();
 		}
@@ -222,8 +263,16 @@ void Application::RenderUI()
 		m_lineWaitingFirst = true;
 		m_circleWaitingCenter = true;
 	}
-
-	// Future buttons: Bezier, etc.
+	if( ImGui::Button( "Bezier", ImVec2( 80, 35 ) ) )
+	{
+		m_activeTool = Tool::BezierCurve;
+		// Reset other tools' states
+		m_lineWaitingFirst = true;
+		m_circleWaitingCenter = true;
+		m_ellipseWaitingFirst = true;
+		// Don't reset curve editing yet
+	}
+	// Future buttons: idk, etc.
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -275,6 +324,14 @@ void Application::RenderUI()
 		else
 			ImGui::Text( "Click to set rx (width) and ry (height)." );
 	}
+	if( m_activeTool == Tool::BezierCurve )
+	{
+		ImGui::Text( "Bezier Curve Tool" );
+		if( m_curveMode && m_currentCurve )
+			ImGui::Text( "Adding points: %zu so far. Right-click to finish.", m_currentCurve->controlPoints.size() );
+		else
+			ImGui::Text( "Click to start a new curve." );
+	}
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -284,6 +341,10 @@ void Application::RenderUI()
 		m_lines.clear();
 		m_circles.clear();
 		m_ellipses.clear();
+
+		m_curves.clear();
+		m_curveMode = false;
+		m_currentCurve = nullptr;
 	}
 	ImGui::End();
 
@@ -300,6 +361,7 @@ void Application::RenderUI()
 		case Tool::Line: toolName = "Line"; break;
 		case Tool::Circle: toolName = "Circle"; break;
 		case Tool::Ellipse: toolName = "Ellipse"; break;
+		case Tool::BezierCurve: toolName = "Bezier Curve (click points, right-click finish)"; break;
 	}
 
 	auto status = std::format( "Tool: {}  |  Mouse: ({:.0f}, {:.0f})  |  Items: {}",
