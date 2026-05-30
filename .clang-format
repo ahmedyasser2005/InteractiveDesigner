@@ -1,0 +1,29 @@
+---
+BasedOnStyle: Microsoft
+Standard: Latest
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+
+ColumnLimit: 80
+
+PointerAlignment: Left
+
+BreakBeforeBraces: Allman
+
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false 
+AllowShortLoopsOnASingleLine: false        
+
+SpaceAfterCStyleCast: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+
+SpacesInContainerLiterals: false
+SpacesInAngles: false
+
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
