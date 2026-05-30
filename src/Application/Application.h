@@ -1,8 +1,8 @@
 #pragma once
-#include "Window.h"
-#include "Graphics.h"
-#include "Input.h"
-#include "GUI.h"
+#include "Platform/Window.h"
+#include "Platform/Graphics.h"
+#include "Platform/Input.h"
+#include "EditorUI/GUI.h"
 #include <memory>
 #include <vector>
 

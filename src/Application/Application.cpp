@@ -1,6 +1,6 @@
 #include "Application.h"
-#include "CurveUtils.h"
-#include "ErrorUtils.h"
+#include "Draw/CurveUtils.h"
+#include "Utility/ErrorUtils.h"
 #include <ShellScalingApi.h>
 #include <imgui.h>
 #include <format>

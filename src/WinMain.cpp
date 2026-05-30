@@ -1,5 +1,5 @@
-﻿#include "Application.h"
-#include "ErrorUtils.h"
+﻿#include "Application/Application.h"
+#include "Utility/ErrorUtils.h"
 
 int WINAPI wWinMain(
 	[[maybe_unused]] _In_	  HINSTANCE hInstance,
