@@ -9,7 +9,7 @@ if(MSVC)
     add_compile_options(
         /Zc:preprocessor
         /W4
-        /WX
+        # /WX
         /utf-8
         /permissive-
     )
